@@ -119,7 +119,7 @@ gaps, by severity:
 | 3 | Genesis plugin hardcodes `<contracts>/../../contracts/eosio.bios.1.8.3` (source layout); image ships only `build/contracts` | DEGRADED | Add a fallback in the plugin | ✅ **DONE** — bios fallback in ultratest2 1.0.4 |
 | 4 | Image node 19 / npm 9: `npm i -g` errors (works by accident), engine warnings | DEGRADED | Node 22 LTS in the image; preinstall ultratest2 | ⏳ needs the §2 master image (npm-9 error is cosmetic today) |
 | 5 | nodeos v5.0.2 pre-Savanna + old system contracts (no `ultra.bridge`, missing newer Ultra actions) | DEGRADED (latent) | The §2 image refresh; treat image-green as necessary-not-sufficient until then | ⏳ needs the §2 master image |
-| 6 | `@ultraos/wallet-sdk` unloadable in plain Node (raw `src/`, no `exports` map) — bundlers OK | NIT (dapps) | Publish transpiled dist + `exports` map | ⏳ P1.3 — deferred (bundler-based dapps unaffected) |
+| 6 | `@ultraos/wallet-sdk@0.3.1` unloadable in plain Node — its compiled `src/index.js` does `export * from './lib/interfaces'` (**directory import**) + `'./lib/ultra-wallet-sdk'` (**extensionless**), both `ERR_UNSUPPORTED_DIR_IMPORT`/`ERR_MODULE_NOT_FOUND` under Node ESM; bundlers resolve them | NIT (dapps) | **Bundle to a single self-contained file** (not just add `exports`) + `exports`/`types` map | ⏳ P1.3 — **investigated + fix PROVEN** (see quick-win 3); publish left to the wallet team (§8.4 ship-gate) |
 | 7 | ultratest v1 interactive first-run prompt; ultratest2 docker-sock probe error in-container | NIT | Guard the probe | ✅ **DONE** — docker-sock probe silenced in ultratest2 1.0.4 |
 
 ### Quick wins that need NO new image — ✅ EXECUTED 2026-07-23
@@ -132,8 +132,24 @@ gaps, by severity:
    guard, canonical spec `package.json` documented. Also fixed the publish workflow's npm
    auth (`registry-url`, PR #123). **This turned the public path from "4 workarounds" into
    "npm i -g and go"** — re-validated from published npm, Tip Jar 6/6, zero workarounds.
-3. ⏳ **Publish a transpiled `@ultraos/wallet-sdk`** with an `exports` map (gap 6) — P1.3,
-   deferred (lowest priority; bundler-based dapps, the KB's recommended stack, are fine).
+3. ⏳ **`@ultraos/wallet-sdk` plain-Node loadability (gap 6) — P1.3, fix PROVEN, publish
+   deferred to the wallet team.** Diagnosis: the published `0.3.1` ships compiled JS but with
+   directory/extensionless internal imports that Node ESM rejects (bundlers are fine — so the
+   KB's recommended bundler dapps are unaffected). **Validated recipe** (POC bundled the real
+   `0.3.1` src → single ESM file that loads in plain Node, exporting the full public surface
+   `UltraWalletSDK, PurchaseItemType, ResponseStatus, SdkErrorCode, SDK_ERROR_MESSAGE`):
+
+   ```bash
+   # from web-app/libs/wallet-sdk, at the 0.3.1 RELEASE state (NOT the 0.5.x working tree):
+   esbuild src/index.js --bundle --format=esm --platform=neutral --packages=external \
+     --outfile=dist/index.mjs
+   # (optional CJS: --format=cjs --outfile=dist/index.cjs)
+   ```
+   then set in `package.json`: `"types":"./src/index.d.ts"`, `"main":"./dist/index.mjs"`,
+   and an `"exports"` map (`"import":"./dist/index.mjs"`, `"types":"./src/index.d.ts"`), bump
+   to **0.3.2**, and ship it through the **§8.4 coordinated flow** — the publish is withheld
+   here because it auto-reaches the live extension + toolkit + bridge-dapp (`^0.3.1`) and must
+   pass the manual Chrome extension smoke ship-gate. Lowest priority.
 
 The §2 master image then removes the remaining drift (gaps 4–5) and makes the whole
 toolchain one `docker pull`.
