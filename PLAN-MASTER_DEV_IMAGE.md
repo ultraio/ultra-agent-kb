@@ -1,0 +1,129 @@
+# PLAN — Master Dev Image (`ultra-dev-all-in-one`)
+
+**Status:** PROPOSED (operator plan — internal action items; not a how-to doc)
+**Last Updated:** 2026-07-23
+**Goal:** make the KB's promise true for the public: *an agent given this KB and Docker can
+develop → build → test → launch a complete dapp on a local chain, and be walked to a
+mainnet deploy, with ZERO private-repo access, ZERO compile-from-source, ZERO reliance on
+a pre-provisioned machine.*
+
+---
+
+## 1. Why (validated gap summary)
+
+The only public toolchain image today is `quay.io/ultra.io/3rdparty-devtools:latest`,
+last published **2025-03-04** — one full protocol generation stale:
+
+| Component | In the public image | Current (mainnet / internal) | Impact |
+| --- | --- | --- | --- |
+| nodeos / cleos / keosd | v5.0.2-3.0.0 (pre-Savanna) | v6.2.2-3.0.0 (Savanna live) | local chain ≠ mainnet behavior (finality, protocol features) |
+| CDT | 4.0.1 | 4.1.1 | compile drift vs shipped contracts |
+| System contracts | old build in `/opt/eosio.contracts/build/contracts` | current master | missing newer Ultra actions/tables |
+| Test framework | ultratest v1 only | **ultratest2** (npm, public) | KB + all current internal specs are ultratest2 |
+| Node.js | v19 (EOL) | v22 LTS line | ultratest2/tsx + Vite expect ≥20; npm-9 global installs error |
+
+npm side is healthy: `@ultraos/{ultratest2,ultratest,wallet-sdk,ultra-signer-lib}` and
+`@wharfkit/antelope` are all public.
+
+## 2. The deliverable
+
+One public image, published to **`quay.io/ultra.io/`** (the existing public org), e.g.
+`quay.io/ultra.io/ultra-dev:latest` (+ semver tags matching the nodeos version, e.g.
+`6.2.2`). Contents:
+
+1. **Chain binaries** — nodeos, cleos, keosd at the **mainnet-matching version**
+   (v6.2.2-3.0.0 today), Savanna-era genesis/config defaults.
+2. **CDT 4.1.1** — `cdt-cpp` + cmake toolchain (`lib/cmake/cdt`) so both standalone
+   `cdt-cpp` and CMake-based contract builds work.
+3. **Built system contracts** at the canonical path `/opt/eosio.contracts/build/contracts`
+   (current master build: bios/system/token/msig/nft.ft/oracle/eba/…), so
+   `ultratest2 --contracts-dir-path=/opt/eosio.contracts/build/contracts` just works.
+4. **Node 22 LTS** + **ultratest2 preinstalled globally** (`@ultraos/ultratest2`) **with
+   its plugin set resolvable** (genesis/system/ultra-contracts/ultra-startup plugins) —
+   whatever the validation showed about plugin packaging (§6) must be solved *inside* the
+   image so a spec dir needs no network at all.
+5. **Dapp deps warm cache (optional):** a global npm cache layer with
+   `@ultraos/wallet-sdk`, `@wharfkit/antelope`, `vite`, `vue`, `vitest`, `@playwright/test`
+   (+ `playwright install chromium --with-deps` for headless E2E in-container).
+6. **Scaffold + smoke:** `/opt/templates/` holding the Tip Jar worked example (contract +
+   spec + e2e_setup + dapp skeleton = KB doc `09` in file form) and a
+   `/usr/local/bin/ultra-smoke` script that compiles the template, runs its spec, and
+   exits 0 — CI for the image itself, and an agent's first sanity command.
+7. Non-root user, `/opt/ultra_workdir` volume convention (docs parity), ports 8888/9876
+   exposed.
+
+Size target: ≤ ~2 GB (the current image is 633 MB; CDT + node + playwright add the bulk).
+If Playwright bloats it, split `ultra-dev:slim` (1–4) and `ultra-dev:e2e` (1–6).
+
+## 3. How it gets built (internal CI — the private repos stay private)
+
+A small internal pipeline (GitLab CI in `ultraio/devops`, or GitHub Actions in the private
+`ultraio` org) that:
+
+1. Builds/uses release artifacts of Spring (Ultra fork), CDT, and `eosio.contracts` master
+   (the repos stay private — only **binaries** ship, same licensing posture as the
+   existing devtools image).
+2. Assembles the Dockerfile (sketch):
+
+   ```dockerfile
+   FROM ubuntu:24.04
+   COPY --from=spring-artifacts  /usr/local/bin/{nodeos,cleos,keosd} /usr/local/bin/
+   COPY --from=cdt-artifacts     /usr/opt/cdt /usr/opt/cdt        # + PATH + cmake config
+   COPY --from=contracts-build   /build/contracts /opt/eosio.contracts/build/contracts
+   RUN <install node 22 via nodesource> \
+    && npm i -g @ultraos/ultratest2 <plugin packages or bundled tarballs> \
+    && npx playwright install chromium --with-deps            # e2e variant only
+   COPY templates/ /opt/templates/
+   COPY ultra-smoke /usr/local/bin/ultra-smoke
+   RUN ultra-smoke   # image is self-tested at build time
+   ```
+
+3. Publishes to `quay.io/ultra.io/ultra-dev:{latest,<nodeos-semver>}`.
+4. **Refresh triggers:** every mainnet nodeos upgrade, every CDT release, monthly cron
+   (system-contracts refresh) — the staleness of the current image (17 months) is exactly
+   the failure mode to design against. A `versions.json` inside the image records the
+   build inputs for agents to assert against.
+
+## 4. KB integration (once the image exists)
+
+- `00-ACCESS_AND_SOURCES.md` §3 flips from "devtools image + caveats" to a single
+  `docker run quay.io/ultra.io/ultra-dev` bootstrap; docs `02`/`04` gain the in-container
+  command variants; `09` gains a "same flow, in Docker" appendix using `/opt/templates`.
+- The KB's clean-room validation gets re-run **in the container** and the result recorded
+  in the README (that is the definition of done for this plan).
+
+## 5. Definition of done
+
+A fresh machine with only Docker: an agent reading the KB completes the entire Tip Jar
+flow (compile → spec suite green → keep-alive chain → dapp vitest/build → Playwright
+green) **inside/against the container**, and doc `08` then routes a real mainnet deploy
+(Pro Wallet + KYC + RAM + `cleos set contract` — cleos from the same image).
+
+## 6. Empirical gap list (2026-07-23 docker-only validation)
+
+Method: the complete Tip Jar flow was attempted with ONLY the public image + public npm
+(host toolchain untouched). Result: **compile ✅ (CDT 4.0.1), full ultratest2 spec suite
+✅ 6/6, ultratest v1 boot ✅ — but the ultratest2 path needed 4 undocumented workarounds**
+(documented in `00` §3 so agents can proceed today). The gaps, by severity:
+
+| # | Gap | Severity | Fix |
+| --- | --- | --- | --- |
+| 1 | The 4 `ultratest-*-plugin` packages are not on npm; spec `package.json`s reference a private checkout; 2 bundled plugin dirs lack `package.json` | **BLOCKER** (recoverable only via archaeology) | Publish the plugins (or ship proper package.jsons in the ultratest2 tarball + declare them as deps); document the canonical public spec `package.json` |
+| 2 | `@ultraos/ultra-signer-lib@1.7.4` rejects `http://0.0.0.0:8888` → **every fresh ultratest2 install fails at genesis** (floating `^1.6.2` dep) | **BLOCKER — live regression, affects internal fresh installs too** | Pin signer-lib exactly in ultratest2, or bind/announce `127.0.0.1` (1.7.4-whitelisted); republish ultratest2 |
+| 3 | Genesis plugin hardcodes `<contracts>/../../contracts/eosio.bios.1.8.3` (source layout); image ships only `build/contracts` | DEGRADED | Ship bios at both paths in the image, or add a fallback in the plugin |
+| 4 | Image node 19 / npm 9: `npm i -g` errors (works by accident), engine warnings | DEGRADED | Node 22 LTS in the image; preinstall ultratest2 |
+| 5 | nodeos v5.0.2 pre-Savanna + old system contracts (no `ultra.bridge`, missing newer Ultra actions) | DEGRADED (latent — fine for contract-logic TDD, wrong consensus generation vs mainnet) | The §2 image refresh; treat image-green as necessary-not-sufficient until then |
+| 6 | `@ultraos/wallet-sdk` unloadable in plain Node (raw `src/`, no `exports` map) — bundlers OK | NIT (dapps) / DEGRADED (Node scripts, SSR, tests) | Publish transpiled dist + `exports` map |
+| 7 | ultratest v1 interactive first-run prompt; ultratest2 docker-sock probe error in-container | NIT | `--yes` flag / pipe newline; guard the probe |
+
+### Quick wins that need NO new image (do these first)
+
+1. **Republish `@ultraos/ultratest2`** with: signer-lib pinned (or the `127.0.0.1` fix),
+   plugin package.jsons included, plugins declared as real deps, and the bios-path
+   fallback. This alone turns the public path from "4 workarounds" into "npm i -g and go".
+2. **Fix the signer-lib regression** (gap 2) regardless — it breaks fresh internal
+   installs too, on any machine.
+3. **Publish a transpiled `@ultraos/wallet-sdk`** with an `exports` map (gap 6).
+
+The §2 master image then removes the remaining drift (gaps 3–5) and makes the whole
+toolchain one `docker pull`.

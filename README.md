@@ -14,6 +14,21 @@ sibling repos on this machine. When a doc conflicts with code, the code wins —
 
 ---
 
+## The expected development flow
+
+1. **Feed the agent this KB**: *"Read `README.md` in ultra-agent-kb, then: build me a dapp
+   that does X."* The router below tells it what to read for each phase.
+2. **Bootstrap tooling** — internal machine: `02` §1 (native toolchain). Public/fresh
+   machine: `00` §3 (docker image + npm; no private repos, no compiling from source).
+3. **Develop locally**: contract (`03`) → spec suite green on a real local chain (`04`) →
+   dapp + wallet integration (`05`/`06`) → Playwright E2E against a keep-alive seeded
+   chain (`04` §6, `05` §6). The Tip Jar (`09`) is the full worked template.
+4. **Ship**: testnet first, then mainnet (`08` — accounts, KYC/RAM gates, deploy runbook,
+   governance handoff), dapp hosting (`08` §6). Verify per `08` §7.
+
+Everything a dapp needs at runtime (wallet SDK, read client) is public npm; everything the
+dev loop needs is in `00`'s matrix.
+
 ## Task router — read what you need
 
 | Your task | Read (in order) |

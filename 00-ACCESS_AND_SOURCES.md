@@ -13,7 +13,7 @@ internal-only references with `[internal]`.
 | Resource | Where | Notes |
 | --- | --- | --- |
 | Official developer docs | `https://developers.ultra.io` (source: `github.com/ultraio/docs-blockchain`, public) | tutorials, chain/contract reference, endpoints |
-| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:latest` (public) | **the public way to get nodeos + cleos + keosd + ultratest**; boots a preconfigured local chain with bios/system/token/msig deployed (snapshot-based); ports 8888 (HTTP) / 9876 (P2P); mount `/opt/ultra_workdir`. Binaries are NOT downloadable individually. |
+| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:latest` (public) | **the public way to get nodeos + cleos + keosd + ultratest**; also ships CDT (`cdt-cpp`) and **built system contracts at `/opt/eosio.contracts/build/contracts`**. ⚠️ latest build 2025-03-04: nodeos **v5.0.2 (pre-Savanna**; mainnet is v6.2.x**)**, CDT 4.0.1, node 19, ultratest v1 only — see §3 + `PLAN-MASTER_DEV_IMAGE.md`. Binaries are NOT downloadable individually. |
 | Other public images (quay.io/ultra.io) | `eosio-docker-starter`, `eosio-cdt-docker-starter`, `3rdparty-dfuse`, `firehose-antelope` | chain/CDT starters, dfuse/firehose |
 | `@ultraos/ultratest2` | npm (public) | the current TS test framework (`04`) — code installs publicly |
 | `@ultraos/ultratest` | npm (public) | the v1 framework bundled in the devtools image |
@@ -60,10 +60,38 @@ docker run -dit --name ultra -p 8888:8888 -p 9876:9876 \
 # dapp:    npm i @ultraos/wallet-sdk @wharfkit/antelope   (all public)
 ```
 
-Caveat for ultratest2 outside the image: `--contracts-dir-path` must point at built
-system contracts; internally that's the private `eosio.contracts/build/contracts`. Whether
-the npm package bundles them is UNVERIFIED — if not, use the devtools image (its chain
-comes pre-bootstrapped) or extract the artifacts from it.
+**Validated 2026-07-23** (full Tip Jar flow, docker-only, host toolchain untouched):
+compile with the image's `cdt-cpp` ✅; ultratest2-from-npm runs the whole spec suite ✅
+(6/6 green) against the image's nodeos + its `/opt/eosio.contracts/build/contracts` —
+**but only after four workarounds** an agent must apply today:
+
+1. **Pin `@ultraos/ultra-signer-lib@1.7.3`** inside the installed ultratest2
+   (`cd $(npm root -g)/@ultraos/ultratest2 && npm i @ultraos/ultra-signer-lib@1.7.3`) —
+   the floating `^1.6.2` resolves to **1.7.4, which rejects ultratest2's
+   `http://0.0.0.0:8888` endpoint** and breaks EVERY fresh install at genesis.
+2. **Plugin stubs:** the 4 `ultratest-*-plugin` packages are NOT on npm (404), but the
+   published ultratest2 tarball bundles them under `src/plugins/native/*`. Two of them
+   (`genesis`, `system`) lack a `package.json` — write minimal
+   `{"name":"ultratest-genesis-plugin","version":"1.0.0"}`-style stubs into those dirs.
+3. **Spec-dir `package.json`:** point `@ultraos/ultratest` + the 4 plugins at
+   `file:$(npm root -g)/@ultraos/ultratest2/src/...` (the internal repos' relative paths
+   don't exist publicly).
+4. **Bios path symlink:** the genesis plugin expects
+   `/opt/eosio.contracts/contracts/eosio.bios.1.8.3` (source layout); the image only has
+   `build/contracts/` — `mkdir -p /opt/eosio.contracts/contracts && ln -s` the built bios
+   dir into that path.
+
+Noise to ignore: `npm i -g` on the image's node 19 prints an npm-9 error yet yields a
+working install (the CLI self-fetches `tsx` on first run); a `/var/run/docker.sock` probe
+error at startup is cosmetic; `ultra.bridge` is skipped (not in the image's contract set).
+
+**Drift warning:** a green run in this image is against a **pre-Savanna v5.0.2 chain and
+older system contracts** — treat it as necessary-not-sufficient and re-verify on testnet
+before mainnet. `@ultraos/wallet-sdk` needs a bundler (Vite/esbuild — fine for dapps);
+plain-Node scripts can't import it directly (no `exports` map — bundle first).
+
+The permanent fix for all of the above is the refreshed all-in-one image —
+**`PLAN-MASTER_DEV_IMAGE.md`**.
 
 ## 4. Reading this KB without internal access
 
