@@ -48,7 +48,28 @@ some repos are public but none are developer-toolchain images.)
 **Internal (Ultra dev machine):** everything in `02` §1 — native CDT/nodeos/ultratest2,
 private checkouts, the DeFi exemplars. Fastest, and what the worked example used.
 
-**Public (no private access):**
+**Public — recommended: the all-in-one image (mainnet-current, everything preinstalled):**
+
+```bash
+docker pull quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2
+docker run -dit --name ultra -p 8888:8888 -p 9876:9876 \
+  --entrypoint /bin/bash quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2
+# self-test (compiles the bundled Tip Jar template + runs its spec suite, expect 6/6):
+docker exec ultra bash -lc ultra-smoke
+# dapp deps (all public npm): npm i @ultraos/wallet-sdk @wharfkit/antelope
+```
+
+Ships **nodeos/cleos v6.2.2-3.0.0 (Savanna, mainnet-matching)**, **CDT 4.0.1** (`cdt-cpp`),
+**Node 22**, **`@ultraos/ultratest2@1.0.4` preinstalled** (so `ultratest2 -t <spec>` just
+works — no `npm i -g`), the **current `eosio.contracts` master build** at
+`/opt/eosio.contracts/build/contracts` (adds `ultra.bridge/dex/farm/lend/rfq`), the Tip Jar
+worked example at `/opt/templates/tipjar`, and `/usr/local/bin/ultra-smoke` (self-test). Build
+inputs: `/opt/versions.json`. Validated 2026-07-23 — `ultra-smoke` green (Tip Jar 6/6) on a
+fresh pull. (First manual build; the CI-reproducible pipeline lives in `ultra.docker`, see
+`PLAN-MASTER_DEV_IMAGE.md`.)
+
+**Public — alternative: the base devtools image** (older nodeos v5.0.2 **pre-Savanna**;
+install ultratest2 yourself):
 
 ```bash
 # toolchain + local chain (nodeos/cleos/keosd/ultratest, system contracts pre-deployed):
