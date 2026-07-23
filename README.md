@@ -96,3 +96,11 @@ internal reference dev machine the KB was validated on; public readers substitut
 `00` §3 bootstrap. Content was synthesized from developers.ultra.io, the Ultra source
 repos, and the shipped wallet/dapp codebases, then **clean-room-validated** (2026-07-23) by
 an agent that built the complete Tip Jar stack (`09`) from this KB alone.
+
+**Public path proven (2026-07-23):** the docker-only bootstrap (`00` §3) was re-validated
+from **published npm** with **zero workarounds** — a fresh `quay.io/ultra.io/3rdparty-devtools`
+container, `npm i -g @ultraos/ultratest2` (`1.0.4`, which pulls `ultra-signer-lib 1.7.5`),
+Tip Jar spec suite **6/6 green**. The four workarounds the earlier validation needed were
+fixed and shipped that day (`@ultraos/ultra-signer-lib@1.7.5`, `@ultraos/ultratest2@1.0.4`);
+see `PLAN-MASTER_DEV_IMAGE.md` §6. Remaining: the all-in-one master image (protocol-current
+binaries) and the `@ultraos/wallet-sdk` `exports` map.
