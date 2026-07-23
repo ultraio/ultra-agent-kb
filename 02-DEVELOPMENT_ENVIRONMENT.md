@@ -13,7 +13,7 @@ public bootstrap in `00` §3 (quay.io devtools image + npm packages) instead of 
 | --- | --- | --- | --- |
 | **CDT** (`cdt-cpp`) | 4.1.1 | `/usr/local/bin/cdt-cpp`; build tree `/home/adam/spring/eosio.cdt/build` | compile C++ → wasm/abi |
 | **nodeos / cleos** | v6.2.2-3.0.0 (Ultra Spring fork) | `/usr/local/bin/{nodeos,cleos}` (byte-identical to `/home/adam/spring/spring/build/bin/nodeos`) | local chain + CLI |
-| **ultratest2** | `@ultraos/ultratest2` 1.0.3, global | `~/.nvm/versions/node/v22.21.0/bin/ultratest2` → symlink to `/home/adam/ultra.repos/ultratest2` | contract test framework (TS, runs via `tsx`, no build step) |
+| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` ≥ **1.0.4**; internal machine runs a source symlink) | `~/.nvm/versions/node/v22.21.0/bin/ultratest2` → symlink to `/home/adam/ultra.repos/ultratest2` | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
 | **Node.js** | v22.21.0 (nvm) | `~/.nvm` | ultratest2, dapps |
 | Spring source | `/home/adam/spring/spring` (also `/home/adam/spring/eosio`) | | protocol reference |
 | eosio.contracts | `/home/adam/spring/eosio.contracts` (branch `master`) | | system contracts + `build.sh` |

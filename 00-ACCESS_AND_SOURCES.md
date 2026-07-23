@@ -56,34 +56,55 @@ docker pull quay.io/ultra.io/3rdparty-devtools:latest
 docker run -dit --name ultra -p 8888:8888 -p 9876:9876 \
   -v ~/ultra_workdir:/opt/ultra_workdir quay.io/ultra.io/3rdparty-devtools:latest
 # compile: cdt-cpp inside the image (or the VS Code extension)
-# test:    ultratest inside the image; or npm i -g @ultraos/ultratest2 on the host
+# test:    npm i -g @ultraos/ultratest2   (pulls 1.0.4 + signer 1.7.5; runs on host or in-image)
 # dapp:    npm i @ultraos/wallet-sdk @wharfkit/antelope   (all public)
 ```
 
-**Validated 2026-07-23** (full Tip Jar flow, docker-only, host toolchain untouched):
-compile with the image's `cdt-cpp` ✅; ultratest2-from-npm runs the whole spec suite ✅
-(6/6 green) against the image's nodeos + its `/opt/eosio.contracts/build/contracts` —
-**but only after four workarounds** an agent must apply today:
+**Validated 2026-07-23** (full Tip Jar flow, docker-only, host toolchain untouched), then
+**re-validated the same day, from published npm, with ZERO workarounds** after the tooling
+fixes below shipped: compile with the image's `cdt-cpp` ✅; `npm i -g @ultraos/ultratest2`
+runs the whole spec suite ✅ (6/6 green) against the image's nodeos + its
+`/opt/eosio.contracts/build/contracts`. This requires **`@ultraos/ultratest2 ≥ 1.0.4`** and
+**`@ultraos/ultra-signer-lib ≥ 1.7.5`** (both published 2026-07-23); a fresh `npm i -g`
+resolves both automatically.
 
-1. **Pin `@ultraos/ultra-signer-lib@1.7.3`** inside the installed ultratest2
-   (`cd $(npm root -g)/@ultraos/ultratest2 && npm i @ultraos/ultra-signer-lib@1.7.3`) —
-   the floating `^1.6.2` resolves to **1.7.4, which rejects ultratest2's
-   `http://0.0.0.0:8888` endpoint** and breaks EVERY fresh install at genesis.
-2. **Plugin stubs:** the 4 `ultratest-*-plugin` packages are NOT on npm (404), but the
-   published ultratest2 tarball bundles them under `src/plugins/native/*`. Two of them
-   (`genesis`, `system`) lack a `package.json` — write minimal
-   `{"name":"ultratest-genesis-plugin","version":"1.0.0"}`-style stubs into those dirs.
-3. **Spec-dir `package.json`:** point `@ultraos/ultratest` + the 4 plugins at
-   `file:$(npm root -g)/@ultraos/ultratest2/src/...` (the internal repos' relative paths
-   don't exist publicly).
-4. **Bios path symlink:** the genesis plugin expects
-   `/opt/eosio.contracts/contracts/eosio.bios.1.8.3` (source layout); the image only has
-   `build/contracts/` — `mkdir -p /opt/eosio.contracts/contracts && ln -s` the built bios
-   dir into that path.
+The only per-project setup is a **spec-directory `package.json`** pointing `@ultraos/ultratest`
++ the four native plugins at the global install via `file:` paths (find the root with
+`npm root -g` and substitute it for `<GLOBAL_ROOT>`):
+
+```jsonc
+{
+  "name": "my-contract-tests",
+  "version": "1.0.0",
+  "dependencies": {
+    "tsx": "4.7.1",
+    "@ultraos/ultratest": "file:<GLOBAL_ROOT>/@ultraos/ultratest2/src",
+    "ultratest-genesis-plugin": "file:<GLOBAL_ROOT>/@ultraos/ultratest2/src/plugins/native/genesis",
+    "ultratest-system-plugin": "file:<GLOBAL_ROOT>/@ultraos/ultratest2/src/plugins/native/system",
+    "ultratest-ultra-contracts-plugin": "file:<GLOBAL_ROOT>/@ultraos/ultratest2/src/plugins/native/ultraContracts",
+    "ultratest-ultra-startup-plugin": "file:<GLOBAL_ROOT>/@ultraos/ultratest2/src/plugins/native/ultraStartup"
+  },
+  "ultratestPlugins": {
+    "ultratest-genesis-plugin": "native",
+    "ultratest-system-plugin": "native",
+    "ultratest-ultra-contracts-plugin": "native",
+    "ultratest-ultra-startup-plugin": "native"
+  }
+}
+```
+
+Then `npm install` in the spec dir and `ultratest2 -t <spec>`.
+
+> **On older tooling (`ultratest2 < 1.0.4` / `ultra-signer-lib < 1.7.5`)** the public path
+> needed four manual workarounds — pin `ultra-signer-lib@1.7.3` (1.7.4 rejected ultratest2's
+> `http://0.0.0.0:8888` genesis endpoint), write `package.json` stubs into the bundled
+> `genesis`/`system` plugin dirs, and symlink `eosio.bios.1.8.3` into the source-layout path.
+> **Upgrading to the versions above is the fix** — don't re-derive the workarounds.
 
 Noise to ignore: `npm i -g` on the image's node 19 prints an npm-9 error yet yields a
-working install (the CLI self-fetches `tsx` on first run); a `/var/run/docker.sock` probe
-error at startup is cosmetic; `ultra.bridge` is skipped (not in the image's contract set).
+working install (the CLI self-fetches `tsx` on first run); `ultra.bridge` is skipped (not in
+the image's contract set). (The old `/var/run/docker.sock` startup-probe error is silenced in
+ultratest2 ≥ 1.0.4.)
 
 **Drift warning:** a green run in this image is against a **pre-Savanna v5.0.2 chain and
 older system contracts** — treat it as necessary-not-sufficient and re-verify on testnet

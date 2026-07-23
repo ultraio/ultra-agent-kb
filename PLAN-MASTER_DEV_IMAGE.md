@@ -1,6 +1,7 @@
 # PLAN — Master Dev Image (`ultra-dev-all-in-one`)
 
-**Status:** PROPOSED (operator plan — internal action items; not a how-to doc)
+**Status:** IN PROGRESS — **Phase 1 quick wins EXECUTED 2026-07-23** (gaps 1,2,3,7 closed;
+see §6). The master image (gaps 4,5) and wallet-sdk `exports` map (gap 6) remain.
 **Last Updated:** 2026-07-23
 **Goal:** make the KB's promise true for the public: *an agent given this KB and Docker can
 develop → build → test → launch a complete dapp on a local chain, and be walked to a
@@ -102,28 +103,41 @@ green) **inside/against the container**, and doc `08` then routes a real mainnet
 ## 6. Empirical gap list (2026-07-23 docker-only validation)
 
 Method: the complete Tip Jar flow was attempted with ONLY the public image + public npm
-(host toolchain untouched). Result: **compile ✅ (CDT 4.0.1), full ultratest2 spec suite
-✅ 6/6, ultratest v1 boot ✅ — but the ultratest2 path needed 4 undocumented workarounds**
-(documented in `00` §3 so agents can proceed today). The gaps, by severity:
+(host toolchain untouched). Original result: **compile ✅ (CDT 4.0.1), full ultratest2 spec
+suite ✅ 6/6, ultratest v1 boot ✅ — but the ultratest2 path needed 4 undocumented
+workarounds**. Those workarounds (gaps 1–3, 7) were **fixed the same day** and the flow
+re-validated from published npm with **zero** workarounds (see the Status column). The
+gaps, by severity:
 
-| # | Gap | Severity | Fix |
-| --- | --- | --- | --- |
-| 1 | The 4 `ultratest-*-plugin` packages are not on npm; spec `package.json`s reference a private checkout; 2 bundled plugin dirs lack `package.json` | **BLOCKER** (recoverable only via archaeology) | Publish the plugins (or ship proper package.jsons in the ultratest2 tarball + declare them as deps); document the canonical public spec `package.json` |
-| 2 | `@ultraos/ultra-signer-lib@1.7.4` rejects `http://0.0.0.0:8888` → **every fresh ultratest2 install fails at genesis** (floating `^1.6.2` dep) | **BLOCKER — live regression, affects internal fresh installs too** | Pin signer-lib exactly in ultratest2, or bind/announce `127.0.0.1` (1.7.4-whitelisted); republish ultratest2 |
-| 3 | Genesis plugin hardcodes `<contracts>/../../contracts/eosio.bios.1.8.3` (source layout); image ships only `build/contracts` | DEGRADED | Ship bios at both paths in the image, or add a fallback in the plugin |
-| 4 | Image node 19 / npm 9: `npm i -g` errors (works by accident), engine warnings | DEGRADED | Node 22 LTS in the image; preinstall ultratest2 |
-| 5 | nodeos v5.0.2 pre-Savanna + old system contracts (no `ultra.bridge`, missing newer Ultra actions) | DEGRADED (latent — fine for contract-logic TDD, wrong consensus generation vs mainnet) | The §2 image refresh; treat image-green as necessary-not-sufficient until then |
-| 6 | `@ultraos/wallet-sdk` unloadable in plain Node (raw `src/`, no `exports` map) — bundlers OK | NIT (dapps) / DEGRADED (Node scripts, SSR, tests) | Publish transpiled dist + `exports` map |
-| 7 | ultratest v1 interactive first-run prompt; ultratest2 docker-sock probe error in-container | NIT | `--yes` flag / pipe newline; guard the probe |
+| # | Gap | Severity | Fix | Status |
+| --- | --- | --- | --- | --- |
+| 1 | The 4 `ultratest-*-plugin` packages are not on npm; spec `package.json`s reference a private checkout; 2 bundled plugin dirs lack `package.json` | **BLOCKER** | Ship `package.json` for the bundled `genesis`+`system` plugins; document the canonical public spec `package.json` | ✅ **DONE** — ultratest2 **1.0.4** (PR #122) + `00` §3 recipe |
+| 2 | `@ultraos/ultra-signer-lib@1.7.4` rejects `http://0.0.0.0:8888` → **every fresh ultratest2 install fails at genesis** (floating `^1.6.2` dep) | **BLOCKER — live regression** | Allowlist `0.0.0.0`, republish; raise ultratest2's floor | ✅ **DONE** — signer-lib **1.7.5** (PR #53), ultratest2 floor → `^1.7.5` (1.0.4) |
+| 3 | Genesis plugin hardcodes `<contracts>/../../contracts/eosio.bios.1.8.3` (source layout); image ships only `build/contracts` | DEGRADED | Add a fallback in the plugin | ✅ **DONE** — bios fallback in ultratest2 1.0.4 |
+| 4 | Image node 19 / npm 9: `npm i -g` errors (works by accident), engine warnings | DEGRADED | Node 22 LTS in the image; preinstall ultratest2 | ⏳ needs the §2 master image (npm-9 error is cosmetic today) |
+| 5 | nodeos v5.0.2 pre-Savanna + old system contracts (no `ultra.bridge`, missing newer Ultra actions) | DEGRADED (latent) | The §2 image refresh; treat image-green as necessary-not-sufficient until then | ⏳ needs the §2 master image |
+| 6 | `@ultraos/wallet-sdk` unloadable in plain Node (raw `src/`, no `exports` map) — bundlers OK | NIT (dapps) | Publish transpiled dist + `exports` map | ⏳ P1.3 — deferred (bundler-based dapps unaffected) |
+| 7 | ultratest v1 interactive first-run prompt; ultratest2 docker-sock probe error in-container | NIT | Guard the probe | ✅ **DONE** — docker-sock probe silenced in ultratest2 1.0.4 |
 
-### Quick wins that need NO new image (do these first)
+### Quick wins that need NO new image — ✅ EXECUTED 2026-07-23
 
-1. **Republish `@ultraos/ultratest2`** with: signer-lib pinned (or the `127.0.0.1` fix),
-   plugin package.jsons included, plugins declared as real deps, and the bios-path
-   fallback. This alone turns the public path from "4 workarounds" into "npm i -g and go".
-2. **Fix the signer-lib regression** (gap 2) regardless — it breaks fresh internal
-   installs too, on any machine.
-3. **Publish a transpiled `@ultraos/wallet-sdk`** with an `exports` map (gap 6).
+1. ✅ **`@ultraos/ultra-signer-lib@1.7.5`** published (PR #53) — allowlists `0.0.0.0` so
+   fresh ultratest2 installs boot genesis. Fixed the live regression that broke internal
+   machines too.
+2. ✅ **`@ultraos/ultratest2@1.0.4`** published (PR #122) — signer floor `^1.7.5`,
+   `package.json` for `genesis`+`system` plugins, bios-path fallback, docker-sock probe
+   guard, canonical spec `package.json` documented. Also fixed the publish workflow's npm
+   auth (`registry-url`, PR #123). **This turned the public path from "4 workarounds" into
+   "npm i -g and go"** — re-validated from published npm, Tip Jar 6/6, zero workarounds.
+3. ⏳ **Publish a transpiled `@ultraos/wallet-sdk`** with an `exports` map (gap 6) — P1.3,
+   deferred (lowest priority; bundler-based dapps, the KB's recommended stack, are fine).
 
-The §2 master image then removes the remaining drift (gaps 3–5) and makes the whole
+The §2 master image then removes the remaining drift (gaps 4–5) and makes the whole
 toolchain one `docker pull`.
+
+> **Publish-token note (2026-07-23):** the GitHub org `NPM_TOKEN` used by CI publishes
+> `@ultraos/ultra-signer-lib` fine but **lacks write scope for `@ultraos/ultratest2`** (CI
+> publish → `E404`), so 1.0.4 was published manually from a scoped account. **DevOps
+> follow-up:** add `@ultraos/ultratest2` (read+write) to the org `NPM_TOKEN` so CI
+> auto-publish works. (The `registry-url` gap in ultratest2's `publish.yml` is already
+> fixed by PR #123.)
