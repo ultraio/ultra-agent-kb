@@ -1,7 +1,10 @@
 # PLAN — Master Dev Image (`ultra-dev-all-in-one`)
 
 **Status:** IN PROGRESS — **Phase 1 quick wins EXECUTED 2026-07-23** (gaps 1,2,3,7 closed;
-see §6). The master image (gaps 4,5) and wallet-sdk `exports` map (gap 6) remain.
+see §6). **Master image BUILT + PUSHED 2026-07-23** (first manual build, gaps 4,5 closed) →
+`quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2`; `ultra-smoke` green (Tip Jar 6/6) on
+Savanna v6.2.2. Remaining: a CI-reproducible pipeline for it (see §3 / `ultra.docker`) and the
+wallet-sdk `exports` map (gap 6).
 **Last Updated:** 2026-07-23
 **Goal:** make the KB's promise true for the public: *an agent given this KB and Docker can
 develop → build → test → launch a complete dapp on a local chain, and be walked to a
@@ -141,3 +144,37 @@ toolchain one `docker pull`.
 > follow-up:** add `@ultraos/ultratest2` (read+write) to the org `NPM_TOKEN` so CI
 > auto-publish works. (The `registry-url` gap in ultratest2's `publish.yml` is already
 > fixed by PR #123.)
+
+## 7. As-built — first manual master image (2026-07-23)
+
+**Published:** `quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2`
+(digest `sha256:f352b2f8…`, ~2.5 GB). **Validated:** `ultra-smoke` green — bundled Tip Jar
+compiled with the image CDT, full spec suite **6/6** on a fresh Savanna genesis, zero
+workarounds.
+
+**Method (overlay, not from-scratch):** `FROM quay.io/ultra.io/3rdparty-devtools:latest`, then
+swap in the mainnet-current pieces — this reuses the base's proven apt runtime-dep layer and
+avoids shipping CDT's 2.9 GB build tree. Overlaid:
+
+- **Chain binaries** → `nodeos/cleos/keosd v6.2.2-3.0.0` (Savanna) from the local Spring build
+  (`/usr/local/bin`), runtime libs `libtinfo6 libgmp10 zlib1g libstdc++6`.
+- **Node 19 → 22.11.0 LTS** — *wipe `/usr/local/lib/node_modules` first*, else npm 10 over the
+  stale tree dies with `Class extends value undefined` on `npm i -g`.
+- **System contracts** → `eosio.contracts` master build (25 contracts incl. the DeFi suite),
+  plus `eosio.bios.1.8.3` copied from the source `contracts/` dir (the master `build/` omits it
+  and genesis needs it → the ultratest2 1.0.4 bios fallback resolves it).
+- **`@ultraos/ultratest2@1.0.4`** preinstalled globally (public npm).
+- **`/opt/templates/tipjar`** (contract + spec) and **`/usr/local/bin/ultra-smoke`** self-test;
+  **`/opt/versions.json`** records the build inputs.
+
+**Deliberately kept CDT at 4.0.1** (from the base) — 4.1.1's build tree is 2.9 GB and 4.0.1
+compiles the current contracts fine; a proper CDT-4.1.1 *install* tree (not the build tree) is
+the follow-up.
+
+**Remaining for a durable image:** (a) a CI-reproducible build — the `ultra.docker` pipeline
+(`external.yml`) is the vehicle, but its version source (`blockchain-manager` main
+`versions.json`) is pinned to nodeos **5.0.2**, so mainnet-currency there needs a
+blockchain-manager bump (affects other consumers) + a dispatch; the node-22 + preinstall-ultratest2
+Dockerfile step landed via `ultra.docker` PR #15. (b) an optional `:e2e` variant with Playwright
++ chromium for in-container dapp E2E (plan §2.5–2.6). (c) decide whether this becomes the KB's
+default `docker pull` target and/or moves to a purpose-named repo/tag.
