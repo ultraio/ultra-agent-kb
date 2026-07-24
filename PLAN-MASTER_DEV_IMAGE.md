@@ -1,10 +1,12 @@
 # PLAN — Master Dev Image (`ultra-dev-all-in-one`)
 
-**Status:** IN PROGRESS — **Phase 1 quick wins EXECUTED 2026-07-23** (gaps 1,2,3,7 closed;
-see §6). **Master image BUILT + PUSHED 2026-07-23** (first manual build, gaps 4,5 closed) →
-`quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2`; `ultra-smoke` green (Tip Jar 6/6) on
-Savanna v6.2.2. Remaining: a CI-reproducible pipeline for it (see §3 / `ultra.docker`) and the
-wallet-sdk `exports` map (gap 6).
+**Status:** ✅ **SHIPPED** — Phase 1 quick wins EXECUTED 2026-07-23 (gaps 1,2,3,7 closed) and
+the **public image refreshed 2026-07-24** (gaps 4,5 closed): `quay.io/ultra.io/3rdparty-devtools`
+**`:latest` + `:0.3.0`** now ship **nodeos v6.2.2-3.0.0 (Savanna)**, Node 22, CDT 4.0.1,
+`@ultraos/ultratest2@1.0.4` preinstalled, current contracts, `/opt/templates`, `ultra-smoke`
+(green, Tip Jar 6/6 on a fresh pull). Pre-Savanna build preserved at tag `618e324f…`.
+Remaining: CI-pipeline reproducibility (⚠️ `ultra.docker`'s `PAT_BECAUSE_APP_WASNT_WORKING`
+secret is expired — see §7) and the wallet-sdk `exports` map (gap 6).
 **Last Updated:** 2026-07-23
 **Goal:** make the KB's promise true for the public: *an agent given this KB and Docker can
 develop → build → test → launch a complete dapp on a local chain, and be walked to a
