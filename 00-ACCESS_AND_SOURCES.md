@@ -13,7 +13,7 @@ internal-only references with `[internal]`.
 | Resource | Where | Notes |
 | --- | --- | --- |
 | Official developer docs | `https://developers.ultra.io` (source: `github.com/ultraio/docs-blockchain`, public) | tutorials, chain/contract reference, endpoints |
-| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:latest` (public) | **the public way to get nodeos + cleos + keosd + ultratest**; also ships CDT (`cdt-cpp`) and **built system contracts at `/opt/eosio.contracts/build/contracts`**. ⚠️ latest build 2025-03-04: nodeos **v5.0.2 (pre-Savanna**; mainnet is v6.2.x**)**, CDT 4.0.1, node 19, ultratest v1 only — see §3 + `PLAN-MASTER_DEV_IMAGE.md`. Binaries are NOT downloadable individually. |
+| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:latest` (public; pin `:0.3.0`) | **the public way to get nodeos + cleos + keosd**; also ships CDT (`cdt-cpp`), **built system contracts at `/opt/eosio.contracts/build/contracts`**, **`@ultraos/ultratest2` preinstalled**, `/opt/templates/tipjar`, and `ultra-smoke`. **Refreshed 2026-07-24: nodeos v6.2.2-3.0.0 (Savanna, mainnet-matching), CDT 4.0.1, Node 22, ultratest2 1.0.4** — see §3. (Pre-Savanna build preserved at tag `618e324f…`.) Binaries are NOT downloadable individually. |
 | Other public images (quay.io/ultra.io) | `eosio-docker-starter`, `eosio-cdt-docker-starter`, `3rdparty-dfuse`, `firehose-antelope` | chain/CDT starters, dfuse/firehose |
 | `@ultraos/ultratest2` | npm (public) | the current TS test framework (`04`) — code installs publicly |
 | `@ultraos/ultratest` | npm (public) | the v1 framework bundled in the devtools image |
@@ -48,38 +48,32 @@ some repos are public but none are developer-toolchain images.)
 **Internal (Ultra dev machine):** everything in `02` §1 — native CDT/nodeos/ultratest2,
 private checkouts, the DeFi exemplars. Fastest, and what the worked example used.
 
-**Public — recommended: the all-in-one image (mainnet-current, everything preinstalled):**
+**Public (no private access)** — the official devtools image, **refreshed 2026-07-24** to the
+mainnet-matching Savanna toolchain with everything preinstalled:
 
 ```bash
-docker pull quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2
+docker pull quay.io/ultra.io/3rdparty-devtools:latest     # or pin :0.3.0
 docker run -dit --name ultra -p 8888:8888 -p 9876:9876 \
-  --entrypoint /bin/bash quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2
+  -v ~/ultra_workdir:/opt/ultra_workdir quay.io/ultra.io/3rdparty-devtools:latest
 # self-test (compiles the bundled Tip Jar template + runs its spec suite, expect 6/6):
 docker exec ultra bash -lc ultra-smoke
-# dapp deps (all public npm): npm i @ultraos/wallet-sdk @wharfkit/antelope
+# compile: cdt-cpp inside the image (or the VS Code extension)
+# test:    ultratest2 -t <spec>   (preinstalled — no `npm i -g` needed)
+# dapp:    npm i @ultraos/wallet-sdk @wharfkit/antelope   (all public)
 ```
 
 Ships **nodeos/cleos v6.2.2-3.0.0 (Savanna, mainnet-matching)**, **CDT 4.0.1** (`cdt-cpp`),
 **Node 22**, **`@ultraos/ultratest2@1.0.4` preinstalled** (so `ultratest2 -t <spec>` just
-works — no `npm i -g`), the **current `eosio.contracts` master build** at
+works), the **current `eosio.contracts` master build** at
 `/opt/eosio.contracts/build/contracts` (adds `ultra.bridge/dex/farm/lend/rfq`), the Tip Jar
 worked example at `/opt/templates/tipjar`, and `/usr/local/bin/ultra-smoke` (self-test). Build
-inputs: `/opt/versions.json`. Validated 2026-07-23 — `ultra-smoke` green (Tip Jar 6/6) on a
-fresh pull. (First manual build; the CI-reproducible pipeline lives in `ultra.docker`, see
-`PLAN-MASTER_DEV_IMAGE.md`.)
+inputs are recorded in `/opt/versions.json`. Validated 2026-07-24 — `ultra-smoke` green
+(Tip Jar 6/6) on a fresh pull of the published tag.
 
-**Public — alternative: the base devtools image** (older nodeos v5.0.2 **pre-Savanna**;
-install ultratest2 yourself):
-
-```bash
-# toolchain + local chain (nodeos/cleos/keosd/ultratest, system contracts pre-deployed):
-docker pull quay.io/ultra.io/3rdparty-devtools:latest
-docker run -dit --name ultra -p 8888:8888 -p 9876:9876 \
-  -v ~/ultra_workdir:/opt/ultra_workdir quay.io/ultra.io/3rdparty-devtools:latest
-# compile: cdt-cpp inside the image (or the VS Code extension)
-# test:    npm i -g @ultraos/ultratest2   (pulls 1.0.4 + signer 1.7.5; runs on host or in-image)
-# dapp:    npm i @ultraos/wallet-sdk @wharfkit/antelope   (all public)
-```
+> **Upgrade note.** Before 2026-07-24 this image shipped **nodeos v5.0.2 (pre-Savanna)**,
+> CDT 4.0.1, Node 19 and only ultratest **v1**. If you need that older image it remains at the
+> digest tag **`618e324fc60de62b6e65d757340c45daadbbf868`** (and `0.2.0`). The `:0.3.0` tag pins
+> the new Savanna build.
 
 **Validated 2026-07-23** (full Tip Jar flow, docker-only, host toolchain untouched), then
 **re-validated the same day, from published npm, with ZERO workarounds** after the tooling
