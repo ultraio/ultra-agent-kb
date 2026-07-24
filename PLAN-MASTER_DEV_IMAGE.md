@@ -2,12 +2,13 @@
 
 **Status:** ✅ **SHIPPED** — Phase 1 quick wins EXECUTED 2026-07-23 (gaps 1,2,3,7 closed) and
 the **public image refreshed 2026-07-24** (gaps 4,5 closed): `quay.io/ultra.io/3rdparty-devtools`
-**`:latest` + `:0.3.0`** now ship **nodeos v6.2.2-3.0.0 (Savanna)**, Node 22, CDT 4.0.1,
+**`:latest` + `:0.3.1`** (CI-built) now ship **nodeos v6.2.2-3.0.0 (Savanna)**, Node 22, CDT 4.1.1,
 `@ultraos/ultratest2@1.0.4` preinstalled, current contracts, `/opt/templates`, `ultra-smoke`
 (green, Tip Jar 6/6 on a fresh pull). Pre-Savanna build preserved at tag `618e324f…`.
 **wallet-sdk `exports` map SHIPPED 2026-07-24** (`@ultraos/wallet-sdk@0.3.2`, gap 6 closed).
-Remaining: CI-pipeline reproducibility only (⚠️ `ultra.docker`'s `PAT_BECAUSE_APP_WASNT_WORKING`
-secret is expired — see §7).
+**CI-reproducible image LIVE 2026-07-24** — `ultra.docker` `external.yml` builds + pushes the
+full image itself (PAT + quay push secrets fixed; templates/smoke/versions.json added). Nothing
+outstanding.
 **Last Updated:** 2026-07-23
 **Goal:** make the KB's promise true for the public: *an agent given this KB and Docker can
 develop → build → test → launch a complete dapp on a local chain, and be walked to a
