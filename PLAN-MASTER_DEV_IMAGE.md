@@ -5,8 +5,9 @@ the **public image refreshed 2026-07-24** (gaps 4,5 closed): `quay.io/ultra.io/3
 **`:latest` + `:0.3.0`** now ship **nodeos v6.2.2-3.0.0 (Savanna)**, Node 22, CDT 4.0.1,
 `@ultraos/ultratest2@1.0.4` preinstalled, current contracts, `/opt/templates`, `ultra-smoke`
 (green, Tip Jar 6/6 on a fresh pull). Pre-Savanna build preserved at tag `618e324f…`.
-Remaining: CI-pipeline reproducibility (⚠️ `ultra.docker`'s `PAT_BECAUSE_APP_WASNT_WORKING`
-secret is expired — see §7) and the wallet-sdk `exports` map (gap 6).
+**wallet-sdk `exports` map SHIPPED 2026-07-24** (`@ultraos/wallet-sdk@0.3.2`, gap 6 closed).
+Remaining: CI-pipeline reproducibility only (⚠️ `ultra.docker`'s `PAT_BECAUSE_APP_WASNT_WORKING`
+secret is expired — see §7).
 **Last Updated:** 2026-07-23
 **Goal:** make the KB's promise true for the public: *an agent given this KB and Docker can
 develop → build → test → launch a complete dapp on a local chain, and be walked to a
@@ -121,7 +122,7 @@ gaps, by severity:
 | 3 | Genesis plugin hardcodes `<contracts>/../../contracts/eosio.bios.1.8.3` (source layout); image ships only `build/contracts` | DEGRADED | Add a fallback in the plugin | ✅ **DONE** — bios fallback in ultratest2 1.0.4 |
 | 4 | Image node 19 / npm 9: `npm i -g` errors (works by accident), engine warnings | DEGRADED | Node 22 LTS in the image; preinstall ultratest2 | ⏳ needs the §2 master image (npm-9 error is cosmetic today) |
 | 5 | nodeos v5.0.2 pre-Savanna + old system contracts (no `ultra.bridge`, missing newer Ultra actions) | DEGRADED (latent) | The §2 image refresh; treat image-green as necessary-not-sufficient until then | ⏳ needs the §2 master image |
-| 6 | `@ultraos/wallet-sdk@0.3.1` unloadable in plain Node — its compiled `src/index.js` does `export * from './lib/interfaces'` (**directory import**) + `'./lib/ultra-wallet-sdk'` (**extensionless**), both `ERR_UNSUPPORTED_DIR_IMPORT`/`ERR_MODULE_NOT_FOUND` under Node ESM; bundlers resolve them | NIT (dapps) | **Bundle to a single self-contained file** (not just add `exports`) + `exports`/`types` map | ⏳ P1.3 — **investigated + fix PROVEN** (see quick-win 3); publish left to the wallet team (§8.4 ship-gate) |
+| 6 | `@ultraos/wallet-sdk@0.3.1` unloadable in plain Node — compiled `src/index.js` used directory/extensionless internal imports (`ERR_UNSUPPORTED_DIR_IMPORT` under Node ESM); bundlers resolved them | NIT (dapps) | Bundle to a single self-contained file + `exports`/`types` map | ✅ **DONE** — **0.3.2 published** (bundled `dist/` + exports map; identical API surface) |
 | 7 | ultratest v1 interactive first-run prompt; ultratest2 docker-sock probe error in-container | NIT | Guard the probe | ✅ **DONE** — docker-sock probe silenced in ultratest2 1.0.4 |
 
 ### Quick wins that need NO new image — ✅ EXECUTED 2026-07-23
@@ -134,24 +135,33 @@ gaps, by severity:
    guard, canonical spec `package.json` documented. Also fixed the publish workflow's npm
    auth (`registry-url`, PR #123). **This turned the public path from "4 workarounds" into
    "npm i -g and go"** — re-validated from published npm, Tip Jar 6/6, zero workarounds.
-3. ⏳ **`@ultraos/wallet-sdk` plain-Node loadability (gap 6) — P1.3, fix PROVEN, publish
-   deferred to the wallet team.** Diagnosis: the published `0.3.1` ships compiled JS but with
-   directory/extensionless internal imports that Node ESM rejects (bundlers are fine — so the
-   KB's recommended bundler dapps are unaffected). **Validated recipe** (POC bundled the real
-   `0.3.1` src → single ESM file that loads in plain Node, exporting the full public surface
-   `UltraWalletSDK, PurchaseItemType, ResponseStatus, SdkErrorCode, SDK_ERROR_MESSAGE`):
+3. ✅ **`@ultraos/wallet-sdk@0.3.2` published 2026-07-24 (gap 6 closed).** `0.3.1` shipped
+   compiled JS whose `src/index.js` used directory/extensionless internal imports
+   (`export * from './lib/interfaces'`), so a plain-Node/SSR/test-runner import died with
+   `ERR_UNSUPPORTED_DIR_IMPORT`; bundlers resolved them, which is why dapps never saw it.
+   **Fix:** bundle the internals into one self-contained ESM file, deps left external, plus an
+   `exports`/`types` map — built from the **published 0.3.1 artifact** (NOT the 0.5.x working
+   tree, which carries unreleased surface):
 
    ```bash
-   # from web-app/libs/wallet-sdk, at the 0.3.1 RELEASE state (NOT the 0.5.x working tree):
    esbuild src/index.js --bundle --format=esm --platform=neutral --packages=external \
      --outfile=dist/index.mjs
-   # (optional CJS: --format=cjs --outfile=dist/index.cjs)
    ```
-   then set in `package.json`: `"types":"./src/index.d.ts"`, `"main":"./dist/index.mjs"`,
-   and an `"exports"` map (`"import":"./dist/index.mjs"`, `"types":"./src/index.d.ts"`), bump
-   to **0.3.2**, and ship it through the **§8.4 coordinated flow** — the publish is withheld
-   here because it auto-reaches the live extension + toolkit + bridge-dapp (`^0.3.1`) and must
-   pass the manual Chrome extension smoke ship-gate. Lowest priority.
+   `main`/`module` → `./dist/index.mjs`, `types`/`typings` → `./src/index.d.ts`, `exports` with
+   `"."` + `"./package.json"`.
+
+   **Validated before publishing:** identical export surface to 0.3.1
+   (`UltraWalletSDK, PurchaseItemType, ResponseStatus, SdkErrorCode, SDK_ERROR_MESSAGE`);
+   plain-Node import works on a fresh install of the published tag (0.3.1 still reproduces the
+   error); **`ultra-tool-kit`** `vue-tsc && vite build` green; **`ultra-bridge-dapp`**
+   `vite build` green + `vitest run` **1022/1022** green.
+
+   **Scope note (corrects an earlier assumption):** the **browser extension and web wallet are
+   not npm consumers** — web-app resolves `@ultraos/wallet-sdk` through a tsconfig path alias
+   to `libs/wallet-sdk/src`, so an npm publish cannot affect them. Only `ultra-tool-kit`
+   (`^0.3.1`) and `ultra-bridge-dapp` (`^0.3.0`) install from npm, neither uses deep imports
+   (so the `exports` map is backward-compatible), and both already build/test green against
+   0.3.2. No consumer manifest bump is required — their existing carets cover 0.3.2.
 
 The §2 master image then removes the remaining drift (gaps 4–5) and makes the whole
 toolchain one `docker pull`.

@@ -121,13 +121,14 @@ working install (the CLI self-fetches `tsx` on first run); `ultra.bridge` is ski
 the image's contract set). (The old `/var/run/docker.sock` startup-probe error is silenced in
 ultratest2 ≥ 1.0.4.)
 
-**Drift warning:** a green run in this image is against a **pre-Savanna v5.0.2 chain and
-older system contracts** — treat it as necessary-not-sufficient and re-verify on testnet
-before mainnet. `@ultraos/wallet-sdk` needs a bundler (Vite/esbuild — fine for dapps);
-plain-Node scripts can't import it directly (no `exports` map — bundle first).
+**Still verify on testnet.** The image now runs the **mainnet-matching Savanna chain**
+(nodeos v6.2.2-3.0.0) with current system contracts, so a green local run is a far stronger
+signal than before — but it is still a local single-node chain: re-verify on testnet before
+mainnet (`08`).
 
-The permanent fix for all of the above is the refreshed all-in-one image —
-**`PLAN-MASTER_DEV_IMAGE.md`**.
+`@ultraos/wallet-sdk` **≥ 0.3.2** ships a bundled `dist/` + `exports` map, so it imports
+cleanly in **plain Node / SSR / test runners** as well as bundlers. (On `0.3.1` and earlier a
+plain-Node import fails with `ERR_UNSUPPORTED_DIR_IMPORT` — upgrade rather than work around it.)
 
 ## 4. Reading this KB without internal access
 
