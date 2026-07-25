@@ -43,6 +43,7 @@ dev loop needs is in `00`'s matrix.
 | Deploy to testnet / mainnet (contract + dapp) | `08` |
 | See one complete end-to-end example | `09` |
 | Avoid known traps | `10` (checklist; each doc has its own gotchas too) |
+| Integrate a core contract (`eosio.token`, Uniqs/`eosio.nft.ft`, msig, oracle) | `11` |
 | Know what's public vs private (repos, images, packages) | `00` |
 
 ## Contents
@@ -78,6 +79,11 @@ dev loop needs is in `00`'s matrix.
 - **`09-WORKED_EXAMPLE_TIP_JAR.md`** — a complete, actually-built example: contract +
   ultratest2 spec + Vue dapp with wallet signing, every command, every gotcha hit.
 - **`10-PITFALLS_CHECKLIST.md`** — the condensed "before you ship" checklist.
+- **`11-CORE_CONTRACT_INTERFACES.md`** — integrating Ultra's system contracts whose **source is
+  private but whose interface is public**: how to pull any contract's ABI (image / `cleos get
+  abi` / `/v1/chain/get_abi`), how to read it, and the verified action+table shapes and
+  integration patterns for `eosio.token` (incl. the `on_notify` transfer pattern) and
+  `eosio.nft.ft` (Uniq factory→token model).
 
 ## Prompt patterns that work
 
