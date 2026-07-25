@@ -1,6 +1,6 @@
 # 08 — Testnet & Mainnet Deployment
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24
 **Read this to:** take a built, tested contract (and its dapp) to Ultra testnet, then
 mainnet — including the parts Ultra gates. Sources: `docs-blockchain` (official, public),
 Ultra's internal deploy runbooks `[internal]`, and on-chain verification notes.
@@ -27,6 +27,22 @@ Ultra's internal deploy runbooks `[internal]`, and on-chain verification notes.
 - **RAM:** `cleos -u <testnet-rpc> push action eosio buyrambytes
   '["<acct>","<acct>",200000]' -p <acct>@active` (or `buyram` with a UOS amount; or the
   Tool Kit's Transaction Builder UI).
+  **Sizing:** budget **wasm size × ~2, plus table growth, plus ~64 KB headroom**. `200000`
+  (~200 KB) suits a small contract; the DeFi runbooks gift **~5 MiB** because those contracts
+  carry large, fast-growing tables. Check what you actually used with
+  `cleos get account <acct>` (`ram_usage` vs `ram_quota`) and top up — RAM is refundable via
+  `refundram`, so over-buying on testnet is cheap. ⚠️ Pre-KYC mainnet accounts are capped at
+  **10 KB**, which is *below* any real contract — see §5.
+- **⚠️ Prerequisite for every `cleos` command below that signs (`-p …`): an unlocked wallet
+  holding the key.** Without it you get `Error 3120003: Locked wallet`. Once per machine:
+
+  ```bash
+  cleos wallet create --to-console          # save the password it prints
+  cleos wallet import --private-key <WIF>   # the key of <acct>@active
+  # later sessions / after ~15 min idle:
+  cleos wallet unlock --password <pw>
+  ```
+  (`keosd` starts on demand; see `07` §2. In the dev image all three run in-container.)
 - **Deploy:**
 
   ```bash

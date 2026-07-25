@@ -1,6 +1,6 @@
 # 06 — Wallet Integration (`window.ultra` + `@ultraos/wallet-sdk`)
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24
 **Read this to:** connect a dapp to the Ultra Wallet (browser extension or web wallet), sign
 and broadcast transactions, handle events, and survive the known traps. The worked example
 (`09`) applies everything here. Wallet *internals* (vault, signing lib, EBA keys) →
@@ -19,8 +19,8 @@ the npm `@ultraos/wallet-sdk` package (public) + this doc carry everything a dap
   installed. No events support.
 - **`@ultraos/wallet-sdk`** (npm) — the dapp-facing SDK that wraps both providers behind one
   API. **This is what your dapp should use** — not raw `window.ultra`.
-- Published SDK version consumed by the shipped dapps: **0.3.1** (`ultra-dex-dapp/package.json`
-  pins `^0.3.1`). The web-app source tree is ahead (0.5.0) — methods like `getNetworks`,
+- Published SDK version: **0.3.2** — **pin `^0.3.2` in new dapps** (0.3.1 and earlier can't be
+  imported by plain Node / vitest / SSR; see `05` §1). Shipped dapps still pin `^0.3.1`/`^0.3.0`. The web-app source tree is ahead (0.5.0) — methods like `getNetworks`,
   `getAvailableAuthorizations`, attestation exist at HEAD but **verify against the installed
   version before using them**.
 
