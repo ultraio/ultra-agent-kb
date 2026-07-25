@@ -187,9 +187,11 @@ toolchain one `docker pull`.
 
 ## 7. As-built — first manual master image (2026-07-23)
 
-**Published (SUPERSEDED — do not use):** `quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2`
-— a stray tag in the wrong repo, replaced the next day by the CI-built
-`3rdparty-devtools:latest`/`:0.3.1`. Use those.
+**Published to (tag since DELETED):** the first manual build was pushed to
+`quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2` — a stray tag in the wrong repo
+(`eosio-docker-starter` is the chain/CDT starter). It was superseded the next day by the
+CI-built `3rdparty-devtools:latest`/`:0.3.1` and **the stray tag was removed 2026-07-25**.
+The same image content remains available as `3rdparty-devtools:0.3.0`.
 (digest `sha256:f352b2f8…`, ~2.5 GB). **Validated:** `ultra-smoke` green — bundled Tip Jar
 compiled with the image CDT, full spec suite **6/6** on a fresh Savanna genesis, zero
 workarounds.
