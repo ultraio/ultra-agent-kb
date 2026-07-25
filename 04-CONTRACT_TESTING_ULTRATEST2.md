@@ -73,11 +73,11 @@ ultratest2 --contracts-dir-path=.../build/contracts -t $PWD/e2e_setup.ts --keep-
   dir on first run**. Consequences: the first run needs registry access (VPN trap), and an
   untracked `node_modules/` + `package-lock.json` will appear inside your worktree
   (gitignored — expected, don't commit them).
-  - **Public / global-install path (no source checkout):** with `npm i -g @ultraos/ultratest2`
-    (≥ 1.0.4), the spec `package.json` instead links the plugins via `file:` paths into the
-    global install (`file:$(npm root -g)/@ultraos/ultratest2/src/...`). The canonical shape is
-    in `00` §3 — that flow is validated end-to-end against the public devtools image with zero
-    workarounds.
+  - **Public / global-install path (no source checkout):** ultratest2 is **already installed
+    globally in the dev image** (≥ 1.0.4) — no `npm i -g` needed there; run it only if you're
+    installing on a host. Either way the spec `package.json` links the plugins via `file:`
+    paths into the global install (`file:$(npm root -g)/@ultraos/ultratest2/src/...`). Canonical
+    shape in `00` §3 — validated end-to-end against the public image with zero workarounds.
 
 ## 3. Spec anatomy
 
