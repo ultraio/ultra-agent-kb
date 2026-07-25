@@ -9,7 +9,7 @@ the **public image refreshed 2026-07-24** (gaps 4,5 closed): `quay.io/ultra.io/3
 **CI-reproducible image LIVE 2026-07-24** — `ultra.docker` `external.yml` builds + pushes the
 full image itself (PAT + quay push secrets fixed; templates/smoke/versions.json added). Nothing
 outstanding.
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24
 **Goal:** make the KB's promise true for the public: *an agent given this KB and Docker can
 develop → build → test → launch a complete dapp on a local chain, and be walked to a
 mainnet deploy, with ZERO private-repo access, ZERO compile-from-source, ZERO reliance on
@@ -207,3 +207,58 @@ blockchain-manager bump (affects other consumers) + a dispatch; the node-22 + pr
 Dockerfile step landed via `ultra.docker` PR #15. (b) an optional `:e2e` variant with Playwright
 + chromium for in-container dapp E2E (plan §2.5–2.6). (c) decide whether this becomes the KB's
 default `docker pull` target and/or moves to a purpose-named repo/tag.
+
+
+## 8. Clean-room re-validation on the public path (2026-07-24)
+
+**Method.** A fresh agent was given ONLY this KB, `quay.io/ultra.io/3rdparty-devtools:latest`
+and public npm. Every host binary (`nodeos`/`cleos`/`cdt-cpp`/`ultratest2`) and every other
+path on the machine (`/home/adam/spring/**`, the other `ultra.repos/**`) was forbidden, and it
+had to design a **new** contract rather than reuse the bundled Tip Jar.
+
+**Result: PASS with zero blockers and zero workarounds.** It built a `pollbooth` voting
+contract (secondary index, numeric scope, `bool` column, no memo dispatch — deliberately
+exercising paths the Tip Jar doesn't):
+
+| Gate | Result |
+| --- | --- |
+| `ultra-smoke` baseline | PASS (Tip Jar 6/6) |
+| `cdt-cpp` build | exit 0, first try; reproducible wasm |
+| ultratest2 spec suite | **7/7** (incl. 4 revert/authority cases) |
+| dapp unit (vitest) | **16/16** |
+| dapp build (`vue-tsc --noEmit && vite build`) | exit 0 |
+| dapp ↔ live local chain | **5/5** — real signed action + surfaced contract assert |
+
+~35 min wall clock, ~11 iterations (dominated by ~70–90 s chain boots). It never reached for a
+forbidden resource. Browser E2E with the real extension was **not** run (needs the Chrome Web
+Store wallet + a GUI); the equivalent was done at the Node level by signing the dapp's real
+action payload and pushing it to the chain.
+
+**13 documentation defects found — all fixed in the same revision:**
+
+| # | Severity | Defect | Fixed in |
+| --- | --- | --- | --- |
+| 1 | DEGRADED | `bool` table fields deserialize as `1`/`0`, never `true`/`false` (cost 2 red cases) | `04` §4 + `10` |
+| 2 | DEGRADED | `09` — the doc the README points public readers at — was 100% private-path (`/home/adam/spring`, `build.sh`) | `09` §3 public-path box |
+| 3 | DEGRADED | `08` never mentioned the `cleos wallet create/import/unlock` prerequisite → `Error 3120003: Locked wallet` | `08` §2 + `10` |
+| 4 | DEGRADED | read-only actions recommended but no way to *call* one documented | `03` §5.12 caveat |
+| 5 | DEGRADED | `updateAuth` had no signature/example although re-keying is mandatory for external signing | `04` §4 |
+| 6 | DEGRADED | dapp dev toolchain unpinned → vite/vitest major mismatch hard-fails `vue-tsc` | `05` §1 devDependencies |
+| 7 | DEGRADED | wallet-sdk version contradicted itself across `02`/`05`/`06` vs `00` (`0.3.1` vs ≥`0.3.2`) | `02`/`05`/`06` → `^0.3.2` |
+| 8 | NIT | WharfKit `err.message` is generic; the contract's assert is in `err.response.json.error.details[]` — naive extraction makes revert-tests vacuous | `05` §6 |
+| 9 | NIT | `--keep-alive` chains are stateful across runs; mutating E2E suites fail on run 2 | `04` §6 |
+| 10 | NIT | `publishContract(account, dirPath)` never said what `dirPath` is relative to | `04` §4 |
+| 11 | NIT | ricardian file format/filename never given (had to be guessed) | `03` §1 |
+| 12 | NIT | `00` §3's "ignore the npm-9 error on Node 19" note went stale with the refreshed image | `00` §3 |
+| 13 | NIT | `08` RAM guidance self-inconsistent (`200000` bytes vs "~5 MiB") with no sizing formula | `08` §2 |
+
+**Independently verified correct** (worth keeping): `00` §3's spec-dir `package.json` worked
+verbatim; `04` §3's spec anatomy + 4-plugin stack first try; `04` §4's `getTableRows`
+positional signature incl. `index_position`/`key_type`; `03` §2's claim that bare `cdt-cpp`
+also emits the ABI; `06` §3.3's two-action-shapes warning; `07` §1's endpoint table (probed
+live — chain IDs match, the "DEAD" endpoints really are dead); `01` §3's
+`buyram`/`buyrambytes`/`refundram` semantics.
+
+**Known non-self-service residue in `08`** (inherent, not doc bugs): mainnet KYC/KYB is an
+email-a-human step with no SLA; there is no documented "how to acquire UOS on mainnet"; and §5
+is a runbook *shape*, not a worked mainnet transcript.

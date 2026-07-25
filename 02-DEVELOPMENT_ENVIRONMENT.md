@@ -1,6 +1,6 @@
 # 02 — Development Environment
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24
 **Read this to:** know exactly what toolchain exists (and where it is on the internal
 reference machine), and how to stand it up elsewhere. **No private access?** Use the
 public bootstrap in `00` §3 (quay.io devtools image + npm packages) instead of §1.
@@ -59,7 +59,7 @@ A leftover `nodeos` from a previous session blocks new test chains:
 
 - Vite + Vue 3 + TypeScript (exemplars: `/home/adam/ultra.repos/ultra-dex-dapp`,
   `ultra-lend-dapp`, `ultra-farm-dapp`; React variant: `ultra-bridge-dapp`).
-- `@ultraos/wallet-sdk` (published 0.3.1) + `@wharfkit/antelope` (^1.0.13).
+- `@ultraos/wallet-sdk` (published **0.3.2** — pin `^0.3.2`, see `05` §1) + `@wharfkit/antelope` (^1.0.13).
 - Playwright for E2E; vitest for unit tests.
 - npm registry access required (a corporate VPN can block npm).
 - For real-extension QA you need Chrome + the extension built from

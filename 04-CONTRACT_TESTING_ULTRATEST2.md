@@ -1,6 +1,6 @@
 # 04 — Contract Testing with ultratest2
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24
 **Read this to:** test a contract against a REAL local Ultra chain. ultratest2 boots a
 native `nodeos` (Ultra Spring fork), deploys the full system-contract stack, runs your
 TypeScript specs, and (optionally) keeps the chain alive for dapp E2E.
@@ -112,6 +112,13 @@ default RAM 10240 bytes).
   (`"5.00000000 UOS"`) and is the workhorse for memo-dispatch entrypoints; also
   `issueTokens`, `createTokens`, `getAccountBalance`.
 - `.system`: `addEosioCodePermission(acct, perm, code)`, `updateAuth`, `setpriv`.
+  - `updateAuth(account, permission, parent, auth)` re-keys an account — needed when you must
+    sign as that account from **outside** the chain (dapp E2E, an external signer), because
+    `requiredAccounts()` accounts get **random** keys you never see. `auth` is the standard
+    authority object: `{threshold: 1, keys: [{key: <PUBLIC_KEY>, weight: 1}], accounts: [],
+    waits: []}`, e.g. `updateAuth('alice', 'active', 'owner', {...})`.
+  - **Simpler alternative** used by the clean-room build: don't re-key at all — sign external
+    transactions as **`eosio`**, which already holds the well-known dev key (`04` §5).
 - `.oracle`, `.faucet`, plus per-contract helpers in the plugin's `api/`.
 
 **Setup (`SystemAPI`):**
@@ -119,11 +126,24 @@ default RAM 10240 bytes).
   way to make accounts incl. dotted names (`eosio` may create `ultra.dex`-style names —
   Ultra's `newaccount` has no suffix rule for privileged creators).
 - `publishContract(account, dirPath)` — deploys wasm+abi. **Does NOT create the account.**
+  `dirPath` is resolved relative to the **spec file's own directory**; when in doubt pass an
+  **absolute** path (e.g. `/opt/eosio.contracts/build/contracts/x/` or your `/work/build/x/`).
 - `getTableRows<T>(code, scope, table, limit?, show_payer?, lower_bound?, index_position?,
   key_type?)`, `getTableByScope`.
 
 **Reads (typed):** `ultra.api.api.contract('<code>').getTable<T>('<table>', '<scope>')`
 (WharfKit under the hood).
+
+> ⚠️ **`bool` fields come back as `1` / `0`, not `true` / `false`.** The chain serializes
+> `bool` as a byte, and neither the JSON RPC nor WharfKit converts it. `row.open === true`
+> is **always false** — write `Boolean(row.open)`, `row.open === 1`, or `!!row.open`. Same in
+> dapp code. (Numeric `uint64` fields likewise may arrive as strings — see the BigInt-mirror
+> note below.) This bites specs *and* UI, and is the single most common first-run red.
+
+> ⚠️ **The `--keep-alive` chain is stateful and is never reset between runs.** A mutating
+> E2E/seed suite that passes on run 1 will fail on run 2 (duplicate rows, "already voted",
+> already-created accounts). Either make such specs **idempotent**, or restart the chain
+> (kill + re-run the seed) between runs.
 
 **Asserts:** `assert(expr, msg)`, `assertAsync(promise, msg)` (fails on throw OR falsy),
 `assertAsyncThrow(promise, substr?)` — `substr` is a case-insensitive **substring** of the

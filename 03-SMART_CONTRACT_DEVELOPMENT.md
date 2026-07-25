@@ -1,6 +1,6 @@
 # 03 — Smart Contract Development
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24
 **Read this to:** write, structure, and build an Ultra (Antelope) C++ contract the way the
 shipped production suite does. The best living exemplars are the five DeFi contracts in
 `/home/adam/spring/eosio.contracts-defi/contracts/` (`ultra.dex` is the reference).
@@ -28,6 +28,21 @@ add_contract(mycontract mycontract ${CMAKE_CURRENT_SOURCE_DIR}/src/mycontract.cp
 target_include_directories(mycontract PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set_target_properties(mycontract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 # + configure_file(...) / -R flags for ricardian if you have clauses
+#
+# Ricardian format: the file MUST be named <contract>.contracts.md (the .in is a CMake
+# template) and live in a dir passed via `-R <dir>`. One block per action:
+#
+#   <h1 class="contract">actionname</h1>
+#   ---
+#   spec_version: "0.2.0"
+#   title: Human Readable Title
+#   summary: 'One-line summary of what {{nowrap actionname}} does.'
+#   icon: https://example.com/icon.png#hash
+#   ---
+#   Free-form markdown body shown to the signer.
+#
+# Omitting a clause only produces a `does not have a ricardian contract` WARNING —
+# compilation still succeeds, so this never blocks you.
 ```
 
 Conventions (mirror `ultra.dex`): `[[eosio::contract("name")]]` / `[[eosio::action]]` /
@@ -164,6 +179,10 @@ Outflows are named actions that end in an **inline** `eosio.token::transfer` fro
     commit state before firing them.
 11. **No deferred txs/cron** — anything scheduled needs an off-chain bot.
 12. **Read-only actions** (`[[eosio::action, eosio::read_only]]`) for view helpers
+    — ⚠️ they compile and register in the ABI's `action_results`, but this KB has **no
+    verified recipe for *calling* one** from ultratest2 or WharfKit (it needs a
+    `/v1/chain/send_read_only_transaction`-style path). Treat them as unproven here:
+    for anything you must read in a test or dapp, **read the table directly** (`04` §4)
     (`getamtout` style).
 
 ## 6. Security checklist (condensed from the shipped audits)

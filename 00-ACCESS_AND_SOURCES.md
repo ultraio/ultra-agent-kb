@@ -1,6 +1,6 @@
 # 00 — Access & Sources (what's public, what's private, what to use)
 
-**Last Updated:** 2026-07-23 (all visibility checks performed unauthenticated on this date)
+**Last Updated:** 2026-07-24 (all visibility checks performed unauthenticated on this date)
 **Read this to:** know which referenced repos/tools you can actually reach. This KB is
 written to be usable in two modes: **internal** (Ultra dev machine with the private
 checkouts) and **public** (npm + quay.io + developers.ultra.io only). Every doc marks
@@ -117,10 +117,11 @@ Then `npm install` in the spec dir and `ultratest2 -t <spec>`.
 > `genesis`/`system` plugin dirs, and symlink `eosio.bios.1.8.3` into the source-layout path.
 > **Upgrading to the versions above is the fix** — don't re-derive the workarounds.
 
-Noise to ignore: `npm i -g` on the image's node 19 prints an npm-9 error yet yields a
-working install (the CLI self-fetches `tsx` on first run); `ultra.bridge` is skipped (not in
-the image's contract set). (The old `/var/run/docker.sock` startup-probe error is silenced in
-ultratest2 ≥ 1.0.4.)
+Noise to ignore: on first run the CLI self-fetches `tsx`; `ultra.bridge` may be skipped if it
+isn't in the image's contract set. (The old `/var/run/docker.sock` startup-probe error is
+silenced in ultratest2 ≥ 1.0.4.) **Stale advice, now obsolete:** older notes told you to
+`npm i -g @ultraos/ultratest2` and to ignore an npm-9 error from the image's Node 19 — the
+refreshed image is **Node 22 / npm 10 with ultratest2 preinstalled**, so neither applies.
 
 **Still verify on testnet.** The image now runs the **mainnet-matching Savanna chain**
 (nodeos v6.2.2-3.0.0) with current system contracts, so a green local run is a far stronger

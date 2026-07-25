@@ -1,6 +1,6 @@
 # 05 — Dapp Development
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24
 **Read this to:** build the web frontend for an Ultra contract the way the shipped dapps do.
 Exemplars: `/home/adam/ultra.repos/ultra-dex-dapp` (the reference), `ultra-lend-dapp`,
 `ultra-farm-dapp` (Vue); `ultra-bridge-dapp` (React, production at bridge.ultra.io).
@@ -15,9 +15,27 @@ exactly three runtime packages:
 
 ```json
 "dependencies": {
-  "vue": "…",
-  "@ultraos/wallet-sdk": "^0.3.1",     // signing (via the extension; no keys in the dapp)
+  "vue": "^3.5.0",
+  "@ultraos/wallet-sdk": "^0.3.2",     // signing (via the extension; no keys in the dapp)
   "@wharfkit/antelope": "^1.0.13"      // read-only chain client
+}
+```
+
+**Pin `@ultraos/wallet-sdk` at `^0.3.2` or later.** 0.3.1 and earlier ship directory/
+extensionless internal imports that Node's ESM resolver rejects
+(`ERR_UNSUPPORTED_DIR_IMPORT`) — fine in a browser bundle, but it breaks **vitest, SSR and
+any plain-Node script**, i.e. exactly the unit testing in §6.
+
+**Dev toolchain that is known to work together** (an unpinned `npm i -D vite vitest` can
+resolve to two different vite majors and hard-fail `vue-tsc`):
+
+```json
+"devDependencies": {
+  "vite": "^5.4.0",
+  "@vitejs/plugin-vue": "^5.1.0",
+  "vitest": "^2.1.0",
+  "vue-tsc": "^2.1.0",
+  "typescript": "^5.6.0"
 }
 ```
 
@@ -101,6 +119,13 @@ floors, and E2E assertions all come from it. Floor/round exactly like the contra
 contract uses u128 saturation, either mirror it or document the divergence.
 
 ## 6. Testing
+
+> ⚠️ **Reading a contract assert out of a WharfKit error.** `err.message` is only the generic
+> `eosio_assert_message assertion failure at /v1/chain/push_transaction`. Your contract's
+> actual `check()` string is in **`err.response.json.error.details[].message`** — so
+> `String(e.message)` makes every "expect this to revert" test vacuously pass. Extract with
+> something like:
+> `const m = e?.response?.json?.error?.details?.map(d => d.message).join(',') ?? e.message`.
 
 - **Unit (vitest):** the math mirror. `npm test` = `vitest run`.
 - **E2E (Playwright) against a REAL seeded local chain** — the shipped pattern:

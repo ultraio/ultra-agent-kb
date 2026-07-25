@@ -1,6 +1,6 @@
 # 09 — Worked Example: Ultra Tip Jar (contract → tests → dapp → E2E)
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24
 **Provenance:** this example was built 2026-07-23 by a **clean-room agent that knew nothing
 about Ultra**, using only this KB — every gate passed on the first real attempt (contract
 build ✅, 6/6 ultratest2 cases ✅ first run, vitest 9/9 ✅, `vue-tsc`+vite build ✅,
@@ -148,8 +148,23 @@ Plus `ricardian/tipjar.contracts.md.in` (a clause for `withdraw`) and the standa
 
 ## 3. Build + test (the exact session)
 
+> **Public path (no private checkout).** The commands in this section are the *internal*
+> reference machine's flow and use the private `eosio.contracts` repo. If you're working from
+> the public toolchain, **skip to the equivalent below** — it produces the same artifacts:
+>
+> ```bash
+> # in the public dev image (00 §3); the Tip Jar also ships at /opt/templates/tipjar
+> cdt-cpp -abigen -I include -o /work/build/tipjar/tipjar.wasm src/tipjar.cpp
+> ultratest2 --contracts-dir-path=/opt/eosio.contracts/build/contracts \
+>   -t /work/tipjar/tipjar.spec.ts
+> ```
+>
+> `cdt-cpp` alone emits both `.wasm` and `.abi` — you do **not** need `build.sh`, the
+> `contract_list` registration, or a CMake project. Point `publishContract` at your own
+> build dir (`04` §4) and use the spec-dir `package.json` from `00` §3.
+
 ```bash
-# own worktree (03 §2)
+# own worktree (03 §2)  [internal]
 cd /home/adam/spring/eosio.contracts
 git worktree add /home/adam/spring/eosio.contracts-tipjar -b example/tipjar feature/ultra-dex-amm
 cd /home/adam/spring/eosio.contracts-tipjar
