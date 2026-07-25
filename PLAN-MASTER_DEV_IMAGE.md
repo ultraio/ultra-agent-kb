@@ -19,7 +19,10 @@ a pre-provisioned machine.*
 
 ## 1. Why (validated gap summary)
 
-The only public toolchain image today is `quay.io/ultra.io/3rdparty-devtools:latest`,
+> **Historical — this is the state that motivated the plan (as of 2026-07-23). All of it is
+> now fixed; see the status banner, §7 and §8.**
+
+The only public toolchain image *at the time* was `quay.io/ultra.io/3rdparty-devtools:latest`,
 last published **2025-03-04** — one full protocol generation stale:
 
 | Component | In the public image | Current (mainnet / internal) | Impact |
@@ -35,9 +38,12 @@ npm side is healthy: `@ultraos/{ultratest2,ultratest,wallet-sdk,ultra-signer-lib
 
 ## 2. The deliverable
 
-One public image, published to **`quay.io/ultra.io/`** (the existing public org), e.g.
-`quay.io/ultra.io/ultra-dev:latest` (+ semver tags matching the nodeos version, e.g.
-`6.2.2`). Contents:
+> **As built:** rather than a new `ultra-dev` repo, the refresh shipped **in place** to the
+> existing **`quay.io/ultra.io/3rdparty-devtools`** (`:latest` + `:0.3.1`) — so every existing
+> consumer (docs, ultratest2's default, contract-builder) picked it up with no change. Items
+> 1–4, 6, 7 below are DONE; item 5 (warm dapp/Playwright cache) was **not** done — see §7.
+
+One public image, published to **`quay.io/ultra.io/`** (the existing public org). Contents:
 
 1. **Chain binaries** — nodeos, cleos, keosd at the **mainnet-matching version**
    (v6.2.2-3.0.0 today), Savanna-era genesis/config defaults.
@@ -92,7 +98,7 @@ A small internal pipeline (GitLab CI in `ultraio/devops`, or GitHub Actions in t
    the failure mode to design against. A `versions.json` inside the image records the
    build inputs for agents to assert against.
 
-## 4. KB integration (once the image exists)
+## 4. KB integration (once the image exists) — ✅ DONE 2026-07-24
 
 - `00-ACCESS_AND_SOURCES.md` §3 flips from "devtools image + caveats" to a single
   `docker run quay.io/ultra.io/ultra-dev` bootstrap; docs `02`/`04` gain the in-container
@@ -100,12 +106,17 @@ A small internal pipeline (GitLab CI in `ultraio/devops`, or GitHub Actions in t
 - The KB's clean-room validation gets re-run **in the container** and the result recorded
   in the README (that is the definition of done for this plan).
 
-## 5. Definition of done
+## 5. Definition of done — ✅ MET 2026-07-24
 
 A fresh machine with only Docker: an agent reading the KB completes the entire Tip Jar
 flow (compile → spec suite green → keep-alive chain → dapp vitest/build → Playwright
 green) **inside/against the container**, and doc `08` then routes a real mainnet deploy
 (Pro Wallet + KYC + RAM + `cleos set contract` — cleos from the same image).
+
+**Met** — and exceeded: the clean-room run (§8) built a *new* contract + dapp, not the Tip Jar.
+**One caveat:** real-extension **browser** Playwright E2E was not achievable headless (needs the
+Chrome Web Store wallet + a GUI); the equivalent was proven at the Node level by signing the
+dapp's real action payload and pushing it to the chain. A `:e2e` image variant would close it.
 
 ## 6. Empirical gap list (2026-07-23 docker-only validation)
 
@@ -176,7 +187,9 @@ toolchain one `docker pull`.
 
 ## 7. As-built — first manual master image (2026-07-23)
 
-**Published:** `quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2`
+**Published (SUPERSEDED — do not use):** `quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2`
+— a stray tag in the wrong repo, replaced the next day by the CI-built
+`3rdparty-devtools:latest`/`:0.3.1`. Use those.
 (digest `sha256:f352b2f8…`, ~2.5 GB). **Validated:** `ultra-smoke` green — bundled Tip Jar
 compiled with the image CDT, full spec suite **6/6** on a fresh Savanna genesis, zero
 workarounds.
