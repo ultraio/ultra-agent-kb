@@ -54,6 +54,15 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
 - [ ] Pin `@ultraos/wallet-sdk` `^0.3.2`+ (earlier can't be imported by vitest/Node/SSR).
 - [ ] Local chain for wallet flows needs `--enable-account-queries` (ultratest2 default).
 
+## Integrating core contracts (`11`)
+
+- [ ] System-contract **source is private, ABI is public** — `cleos get abi <acct>` (or
+      `/v1/chain/get_abi`) before coding; never guess argument order or table names.
+- [ ] Bind `on_notify` to `eosio.token::transfer` explicitly (or verify `get_first_receiver()`)
+      — a wildcard lets a fake token call you.
+- [ ] Treat `$` binary-extension ABI fields as optional; watch table version suffixes
+      (`token.a` vs `token.b`).
+
 ## Endpoints & deploy (`07`, `08`)
 
 - [ ] `api.testnet.ultra.io` is DEAD; eosnation + eoseoul hosts DEAD; cryptolions IP-bans

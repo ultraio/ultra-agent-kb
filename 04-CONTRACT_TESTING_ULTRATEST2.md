@@ -8,6 +8,30 @@ Living exemplars: `/home/adam/spring/eosio.contracts-defi/ultratests/` (52+ spec
 
 ---
 
+## 0. What kind of testing is this? (unit vs integration)
+
+**ultratest2 specs are integration/behavioral tests**, not classic in-process unit tests: each
+spec boots a real `nodeos`, deploys the real system contracts, and exercises your contract over
+RPC. That is a *feature* — you test against genuine `eosio.token`/`eosio.nft.ft` bytecode
+(`11`), real RAM/permission/authority behavior, and real serialization — but a run costs
+~70–90 s of chain boot, so you write **a handful of specs with many cases inside**, not hundreds
+of micro-tests.
+
+Practical strategy that works today:
+
+| Want to test | Use |
+| --- | --- |
+| Contract behavior, authority, table state, reverts | **ultratest2 spec cases** (this doc) — one spec, many named cases |
+| Pure math//formula logic in isolation | Extract it into a **header-only pure function**, then either assert it through a spec case or mirror it in TS and `vitest` it (`05` §5 "math mirror") |
+| Dapp/front-end logic | `vitest` (`05` §6) |
+
+⚠️ **Native C++ unit tests (`eosio/tester.hpp`, `cdt-cc --fnative`, CMake
+`add_native_executable`) do NOT work out of the box.** CDT 4.1.1 ships the header, but
+compiling even a trivial `EOSIO_TEST_BEGIN` case fails with errors **inside CDT's own headers**
+(verified 2026-07-24 in the public image). Don't burn time on it — put the assertion in a spec
+case instead. (Ultra's internal `eosio.contracts` has its own native `unit_test` target; it is
+not reproducible from the public toolchain.)
+
 ## 1. Mental model
 
 - `ultratest2` = global npm CLI (`@ultraos/ultratest2`), TypeScript executed directly via

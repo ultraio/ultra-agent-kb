@@ -110,6 +110,10 @@ users do NOT choose names.** Four types
 
 ## 5. Uniqs — Ultra's NFT standard (`eosio.nft.ft`)
 
+> Integrating (not just understanding) Uniqs or any other system contract? → **`11`** — the
+> source is private but every ABI is public; `11` shows how to pull it and the verified
+> action/table shapes.
+
 Factory → token model on contract account `eosio.nft.ft`:
 
 - **Factory** (`factory.b` table): collection definition — metadata URI+hash, mint limits,
