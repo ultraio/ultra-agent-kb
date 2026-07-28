@@ -80,7 +80,10 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
 - [ ] No testnet dfuse GraphQL exists anymore — mainnet only (`api.mainnet.ultra.io/graphql`).
 - [ ] Every signing `cleos` command needs an **unlocked wallet** holding the key
       (`cleos wallet create/import/unlock`) or you get `Error 3120003: Locked wallet`.
-- [ ] Mainnet: Pro Wallet + KYC (RAM cap 10 KB pre-KYC) + UOS. Record wasm sha256;
+- [ ] No deploy key yet? Register at ultra.io → extension wallet → get UOS (Simplex or the
+      bridge) → **export your account's private key** → `cleos wallet import` (`08` §3).
+- [ ] Mainnet deploy is **permissionless — no KYC**: any account (EBA key exportable, or a Pro
+      Wallet) + UOS + RAM. Record wasm sha256;
       `--add-code`; init in the same bootstrap; atomic governance handoff.
 - [ ] Pages deploys: tag-gated; `GITHUB_TOKEN` bot pushes fire no `push` event (silent
       deploy freeze); MiCA EU-block for crypto-asset dapps.

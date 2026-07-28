@@ -248,7 +248,8 @@ registration in `build.sh` — worked first try because docs `03`/`04`/`06` call
 ## 7. Going to production from here
 
 This example stops at the local chain. The remaining path is mechanical: `08` §2 (testnet:
-faucet account + RAM + `set contract` + `--add-code`), §4–5 (mainnet: Pro Wallet + KYC +
-the runbook shape incl. wasm sha256 + governance handoff), §6 (host the dapp on Cloudflare
+faucet account + RAM + `set contract` + `--add-code`), §4–5 (mainnet: permissionless, no KYC —
+any account + UOS + RAM, plus the runbook shape: wasm sha256 + governance handoff), §6 (host
+the dapp on Cloudflare
 Pages; MiCA check). None of it changes the code you just built — only endpoints, accounts,
 and permissions.
