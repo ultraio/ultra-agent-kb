@@ -2,8 +2,9 @@
 
 **Last Updated:** 2026-07-24
 **Read this to:** take a built, tested contract (and its dapp) to Ultra testnet, then
-mainnet — including the parts Ultra gates. Sources: `docs-blockchain` (official, public),
-Ultra's internal deploy runbooks `[internal]`, and on-chain verification notes.
+mainnet — the account + UOS + RAM on-ramp, the exact `cleos` deploy (permissionless, no KYC),
+and dapp hosting. Sources: `docs-blockchain` (official, public), Ultra's internal deploy
+runbooks `[internal]`, the ultra.io chain-opening announcement, and on-chain verification notes.
 
 ---
 

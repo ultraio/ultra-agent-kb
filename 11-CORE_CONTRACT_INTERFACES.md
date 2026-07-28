@@ -122,7 +122,7 @@ There are **59 actions** — enumerate the live ABI (§1) rather than trusting a
 whole wallet is slow and paginated. Note tables carry version suffixes (`token.a`/`token.b`,
 `factory.a`) — **always confirm which one is live via the ABI**, they migrate.
 
-⚠️ **Factory creation is Ultra-gated** (`01` §5, §8) — you generally cannot create factories on
+⚠️ **Factory creation is Ultra-gated** (`01` §5) — you generally cannot create factories on
 mainnet without Ultra's involvement. Design your dapp to *consume* existing Uniqs unless you
 have that agreement.
 
@@ -130,7 +130,7 @@ have that agreement.
 
 | Contract | What you'd integrate | Where |
 | --- | --- | --- |
-| `eosio` (system) | account creation, `buyrambytes`/`refundram`, permissions, `powerup`-style resources | `01` §3, `08` §2 |
+| `eosio` (system) | account creation, `buyrambytes`/`refundram`, permissions, POWER (`delegatebw`) resources | `01` §3, `08` §2 |
 | `eosio.msig` | multisig `propose`/`approve`/`exec` for governance-owned contracts | `08` §5 |
 | `eosio.oracle` | on-chain price feeds (`chosen_rate` on Uniq factories references it) | `01` §7 |
 | `eosio.eba` | Ultra's EBA account model | `01` §2 |

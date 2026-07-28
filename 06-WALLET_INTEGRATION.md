@@ -165,7 +165,7 @@ const txId = res.data.transactionHash;
 ## 5. Reads are NOT the wallet's job
 
 Chain reads bypass the wallet entirely: keep a read-only `APIClient` from
-`@wharfkit/antelope` pointed at the active network's RPC (details + snippets → `05` §4).
+`@wharfkit/antelope` pointed at the active network's RPC (details + snippets → `05` §3).
 Re-point it whenever the wallet's network changes.
 
 ## 6. UX conventions (from the shipped dapps)

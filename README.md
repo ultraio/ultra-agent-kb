@@ -77,7 +77,7 @@ dev loop needs is in `00`'s matrix.
 - **`07-CHAIN_INTERACTION_AND_DATA.md`** — live RPC endpoints (mainnet + testnet), cleos
   recipes, the public GraphQL API, dfuse/firehose, block explorers.
 - **`08-TESTNET_AND_MAINNET_DEPLOYMENT.md`** — accounts + RAM, deploying a contract
-  (testnet, then mainnet — including Ultra's permissioning reality), msig, code-lock /
+  (testnet, then mainnet — permissionless deployment, no KYC), msig, code-lock /
   immutability, and the standard dapp-hosting pattern (Cloudflare Pages).
 - **`09-WORKED_EXAMPLE_TIP_JAR.md`** — a complete, actually-built example: contract +
   ultratest2 spec + Vue dapp with wallet signing, every command, every gotcha hit.
@@ -90,8 +90,8 @@ dev loop needs is in `00`'s matrix.
 
 ## Prompt patterns that work
 
-- *"Read `agent-knowledge-base/README.md`, then build and test a contract that …"*
-- *"Read `agent-knowledge-base/README.md`, then build a dapp that … using the worked
+- *"Read `ultra-agent-kb/README.md`, then build and test a contract that …"*
+- *"Read `ultra-agent-kb/README.md`, then build a dapp that … using the worked
   example (`09`) as the template."*
 
 ## Scope & provenance
