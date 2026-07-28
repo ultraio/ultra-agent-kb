@@ -75,7 +75,7 @@ Nothing blocks the mission. Open, in rough priority order:
    what makes a rebuild pick up new binaries.
 3. **Optional `:e2e` image variant** with Playwright + chromium for in-container browser E2E
    (plan §2.5–2.6). The clean-room run could not do real-extension browser E2E without a GUI.
-4. **`08` mainnet residue** — deployment is now **permissionless (no KYC)** and the UOS on-ramp
+4. **`08` mainnet residue** — deployment is now **permissionless** and the UOS on-ramp
    (Simplex / Uniswap + bridge) plus key export are documented in `08` §3; what remains is that
    §5 is a runbook *shape*, not a worked mainnet transcript (needs one real mainnet run to capture).
 5. **Read-only actions** (`03` §5.12) are recommended by the docs but have no verified

@@ -26,7 +26,7 @@ sibling repos on this machine. When a doc conflicts with code, the code wins —
 3. **Develop locally**: contract (`03`) → spec suite green on a real local chain (`04`) →
    dapp + wallet integration (`05`/`06`) → Playwright E2E against a keep-alive seeded
    chain (`04` §6, `05` §6). The Tip Jar (`09`) is the full worked template.
-4. **Ship**: testnet first, then mainnet (`08` — permissionless deploy: account + UOS + RAM, no KYC; runbook,
+4. **Ship**: testnet first, then mainnet (`08` — permissionless deploy: account + UOS + RAM; runbook,
    governance handoff), dapp hosting (`08` §6). Verify per `08` §7.
 
 Everything a dapp needs at runtime (wallet SDK, read client) is public npm; everything the
@@ -77,7 +77,7 @@ dev loop needs is in `00`'s matrix.
 - **`07-CHAIN_INTERACTION_AND_DATA.md`** — live RPC endpoints (mainnet + testnet), cleos
   recipes, the public GraphQL API, dfuse/firehose, block explorers.
 - **`08-TESTNET_AND_MAINNET_DEPLOYMENT.md`** — accounts + RAM, deploying a contract
-  (testnet, then mainnet — permissionless deployment, no KYC), msig, code-lock /
+  (testnet, then mainnet — permissionless deployment), msig, code-lock /
   immutability, and the standard dapp-hosting pattern (Cloudflare Pages).
 - **`09-WORKED_EXAMPLE_TIP_JAR.md`** — a complete, actually-built example: contract +
   ultratest2 spec + Vue dapp with wallet signing, every command, every gotcha hit.

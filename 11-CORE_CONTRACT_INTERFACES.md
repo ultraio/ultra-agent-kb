@@ -133,8 +133,7 @@ have that agreement.
 | `eosio` (system) | account creation, `buyrambytes`/`refundram`, permissions, POWER (`delegatebw`) resources | `01` §3, `08` §2 |
 | `eosio.msig` | multisig `propose`/`approve`/`exec` for governance-owned contracts | `08` §5 |
 | `eosio.oracle` | on-chain price feeds (`chosen_rate` on Uniq factories references it) | `01` §7 |
-| `eosio.eba` | Ultra's EBA account model | `01` §2 |
-| `eosio.kyc` | on-chain identity/KYC certificates — **not** required to deploy | `08` §4 |
+| `eosio.group` | user groups | `01` §7 |
 
 Same rule for all of them: **`get abi` first**, then read the table you need.
 

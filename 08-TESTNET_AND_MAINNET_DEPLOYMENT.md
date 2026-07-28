@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-07-24
 **Read this to:** take a built, tested contract (and its dapp) to Ultra testnet, then
-mainnet — the account + UOS + RAM on-ramp, the exact `cleos` deploy (permissionless, no KYC),
+mainnet — the account + UOS + RAM on-ramp, the exact `cleos` deploy (permissionless),
 and dapp hosting. Sources: `docs-blockchain` (official, public), Ultra's internal deploy
 runbooks `[internal]`, the ultra.io chain-opening announcement, and on-chain verification notes.
 
@@ -15,7 +15,7 @@ runbooks `[internal]`, the ultra.io chain-opening announcement, and on-chain ver
    real extension against testnet.
 3. Mainnet: **permissionless** — any account whose key you can export (an Ultra Account/EBA, or
    a Pro Wallet) + UOS → RAM → `set contract` → verify → (optionally) hand governance to `eosio`
-   and treat the code as locked. **No KYC.**
+   and treat the code as locked.
    *(Brand-new to Ultra? §3 has the full on-ramp: register at ultra.io → extension wallet → get
    UOS (Simplex or the bridge) → export your account's private key → `cleos`.)*
 4. Dapp: Cloudflare Pages (+ MiCA geoblock if crypto-asset-facing).
@@ -36,8 +36,7 @@ runbooks `[internal]`, the ultra.io chain-opening announcement, and on-chain ver
   carry large, fast-growing tables. Check what you actually used with
   `cleos get account <acct>` (`ram_usage` vs `ram_quota`) and top up — RAM is refundable via
   `refundram`, so over-buying on testnet is cheap. (New accounts start with only Ultra's
-  sponsored ~5 KB RAM, so you always buy more for a real contract — mainnet included; there is
-  **no KYC gate** on RAM, see §4.)
+  sponsored ~5 KB RAM, so you always buy more for a real contract — mainnet included (§4).)
 - **⚠️ Prerequisite for every `cleos` command below that signs (`-p …`): a running `keosd` with
   an unlocked wallet holding the key.** Without it you get `Error 3120003: Locked wallet`. In the
   dev image `keosd` already runs in-container; on your own host start it once and import the
@@ -74,7 +73,7 @@ runbooks `[internal]`, the ultra.io chain-opening announcement, and on-chain ver
 **Mainnet contract deployment is permissionless** — Ultra opened the chain (*"any developer can
 create and deploy their smart contracts… developers only need to pay for RAM and deploy"*,
 [ultra.io announcement](https://ultra.io/opening-ultras-blockchain-enabling-uniq-creation-smart-contract-deployment-for-everyone/)),
-so there is **no Ultra authorization and no KYC/KYB**. You need three things: an account whose
+so there is **no Ultra authorization** required. You need three things: an account whose
 private key you can export, some **UOS**, and enough **RAM**.
 
 **Brand-new to Ultra? The zero-to-deploy-key on-ramp:**
@@ -131,13 +130,12 @@ contracts on Ultra's blockchain… developers only need to pay for RAM and deplo
 ([ultra.io](https://ultra.io/opening-ultras-blockchain-enabling-uniq-creation-smart-contract-deployment-for-everyone/)).
 Concretely:
 
-- **No on-chain setcode whitelist, no Ultra authorization, and no KYC/KYB.** Any account with
-  UOS and enough RAM can `set contract`. (Some older developers.ultra.io tutorial pages still
-  say a Pro Wallet + KYC are required — that predates the opening; the announcement and the live
-  chain are authoritative. `eosio.kyc` exists for on-chain identity certificates but does **not**
-  gate deployment.)
+- **No on-chain setcode whitelist and no Ultra authorization.** Any account with UOS and enough
+  RAM can `set contract`. (Some older developers.ultra.io tutorial pages still describe a
+  pre-approval step; that predates the chain opening — the announcement and the live chain are
+  authoritative.)
 - **RAM is the only real cost.** New accounts start with Ultra's sponsored ~5 KB, so you buy
-  what your contract needs (`buyrambytes`; refundable via `refundram`). No pre-KYC cap.
+  what your contract needs (`buyrambytes`; refundable via `refundram`).
 - **Governance backstops still exist** (they don't gate honest deploys): `ultra.cntmgr` can
   kill-switch specific actions chain-wide, and `eosio.wrap` + 2/3 BPs can freeze accounts — bad
   actors are handled after the fact, not blocked at deploy time.

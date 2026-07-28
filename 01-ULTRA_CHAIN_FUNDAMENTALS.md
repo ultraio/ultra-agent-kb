@@ -88,7 +88,7 @@ users do NOT choose names.** Four types
     `refundram` (purchase fee — docs state 5% in one place and 10% in another; verify
     live — is not refunded);
   - **new accounts start with Ultra's sponsored ~5 KB RAM**; buy more with
-    `buyram`/`buyrambytes` as needed — **no KYC gate; deployment is permissionless** (`08` §4);
+    `buyram`/`buyrambytes` as needed — **deployment is permissionless** (`08` §4);
   - **developers pay RAM for their users** (contract pays for user rows — see the notify
     RAM rule in `03`), and only registered developers can buy in bulk;
   - Ultra can gift RAM (`giftram`) and runs sponsored tiers (free storage for keys/
@@ -105,8 +105,6 @@ users do NOT choose names.** Four types
   `tokenconfig` table and reject taxed tokens** (the DEX's `is_taxed` pattern, `03` §6).
 - `transfer(from, to, quantity, memo)` — recipient balance rows auto-open (`eosio.token`
   pays that RAM). The `memo` string is the universal dapp routing channel (`03` §4).
-- `ultra.swap` is the legacy pNetwork bridge (PUOS/PUSDT); `ultra.bridge` is the
-  Ultra↔EVM/Ethereum bridge. Both names are taken — relevant when picking contract names.
 
 ## 5. Uniqs — Ultra's NFT standard (`eosio.nft.ft`)
 
@@ -147,13 +145,10 @@ initialized on real networks, but a **local test chain pushes no rate by default
 
 ## 7. System contracts & governance map
 
-Privileged/system accounts: `eosio` (system contract: RAM market, POWER, account
-creation, KYC policy), `eosio.token`, `eosio.msig`, `eosio.wrap`, `eosio.nft.ft`,
-`eosio.oracle`, `eosio.eba` (EBA flows), `eosio.kyc` (on-chain KYC certificates),
-`eosio.group` (user groups), plus app contracts `ultra.bridge`, `ultra.swap`,
-`ultra.cntmgr` (**chain-wide kill-switch that can disable a specific `contract::action`**),
-`ultra.fctmgr`, `ultra.rng` (BP-run RNG oracle), `ultra.claim`, `ultra.rgrab`,
-`ultra.avatar`, `ultra.discord`, `ultra.tools`.
+System contracts a dapp integrates with: `eosio` (the `eosio.system` contract — RAM market,
+POWER, account creation), `eosio.token` (UOS + all fungibles), `eosio.nft.ft` (Uniqs),
+`eosio.msig` (multisig), `eosio.oracle` (price feeds), and `eosio.group` (user groups). Their
+source is private but every ABI is public — pull it per `11`.
 
 Governance: `eosio` is owned by **`eosio.prods`** (the BP msig) — and **Ultra's approval is
 required on every msig proposal**. `eosio.wrap` + 2/3 BPs can freeze any account. For your
@@ -181,8 +176,8 @@ documented publicly under developers.ultra.io → blockchain/contracts.
 1. Names auto-generated; account types EBA vs Pro Wallet; dotted names are privileged.
 2. `active` can't rotate its own keys; EBA rotation via `eosio.eba`.
 3. Account creation gated (EBA = Ultra IdP only); Ultra sponsors creation RAM.
-4. **Mainnet contract deployment is permissionless** — no Ultra authorization, no KYC; any
-   account (EBA key now exportable, or a Pro Wallet) + UOS + RAM — details `08` §4.
+4. **Mainnet contract deployment is permissionless** — no Ultra authorization; any account
+   (EBA key now exportable, or a Pro Wallet) + UOS + RAM — details `08` §4.
 5. RAM: dev-pays-for-users, buy/refund via `buyrambytes`/`refundram`, Ultra reserve/gifting.
 6. Resources: POWER (CPU+NET merged) + free rate-limited txs + predicate sponsorship;
    no gas, no PowerUp.
