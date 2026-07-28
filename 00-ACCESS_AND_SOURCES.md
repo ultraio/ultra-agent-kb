@@ -159,5 +159,5 @@ plain-Node import fails with `ERR_UNSUPPORTED_DIR_IMPORT` — upgrade rather tha
   public alternative above.
 - References tagged `[internal]` point at private Ultra repos/docs; each is accompanied by
   enough inline context that no doc *depends* on following one.
-- Everything else (chain IDs, endpoints, account model, RAM/KYC policy, wallet API,
+- Everything else (chain IDs, endpoints, account model, RAM policy, wallet API,
   patterns, commands) is public information verified against public sources.

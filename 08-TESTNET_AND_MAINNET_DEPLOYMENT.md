@@ -10,10 +10,13 @@ Ultra's internal deploy runbooks `[internal]`, and on-chain verification notes.
 ## 1. The path in one screen
 
 1. Local: build + full ultratest2 suite green (`03`/`04`).
-2. Testnet: get a Pro Wallet account + UOS (faucet), buy RAM, `set contract`, QA with the
+2. Testnet: get an account + UOS (faucet), buy RAM, `set contract`, QA with the
    real extension against testnet.
-3. Mainnet: Ultra Pro Wallet + **KYC/KYB** + UOS → RAM → `set contract` → verify →
-   (optionally) hand governance to `eosio` and treat the code as locked.
+3. Mainnet: **permissionless** — any account whose key you can export (an Ultra Account/EBA, or
+   a Pro Wallet) + UOS → RAM → `set contract` → verify → (optionally) hand governance to `eosio`
+   and treat the code as locked. **No KYC.**
+   *(Brand-new to Ultra? §3 has the full on-ramp: register at ultra.io → extension wallet → get
+   UOS (Simplex or the bridge) → export your account's private key → `cleos`.)*
 4. Dapp: Cloudflare Pages (+ MiCA geoblock if crypto-asset-facing).
 
 ## 2. Testnet
@@ -31,18 +34,27 @@ Ultra's internal deploy runbooks `[internal]`, and on-chain verification notes.
   (~200 KB) suits a small contract; the DeFi runbooks gift **~5 MiB** because those contracts
   carry large, fast-growing tables. Check what you actually used with
   `cleos get account <acct>` (`ram_usage` vs `ram_quota`) and top up — RAM is refundable via
-  `refundram`, so over-buying on testnet is cheap. ⚠️ Pre-KYC mainnet accounts are capped at
-  **10 KB**, which is *below* any real contract — see §5.
-- **⚠️ Prerequisite for every `cleos` command below that signs (`-p …`): an unlocked wallet
-  holding the key.** Without it you get `Error 3120003: Locked wallet`. Once per machine:
+  `refundram`, so over-buying on testnet is cheap. (New accounts start with only Ultra's
+  sponsored ~5 KB RAM, so you always buy more for a real contract — mainnet included; there is
+  **no KYC gate** on RAM, see §4.)
+- **⚠️ Prerequisite for every `cleos` command below that signs (`-p …`): a running `keosd` with
+  an unlocked wallet holding the key.** Without it you get `Error 3120003: Locked wallet`. In the
+  dev image `keosd` already runs in-container; on your own host start it once and import the
+  private key you exported from the wallet extension (§3):
 
   ```bash
-  cleos wallet create --to-console          # save the password it prints
-  cleos wallet import --private-key <WIF>   # the key of <acct>@active
-  # later sessions / after ~15 min idle:
-  cleos wallet unlock --password <pw>
+  # 1. start the key daemon — leave it running
+  keosd --http-server-address=127.0.0.1:8899 --http-max-response-time-ms=30000 \
+        --wallet-dir="$HOME/eosio-wallet" --unlock-timeout=86400 &
+  # 2. create a wallet — SAVE the password it prints
+  cleos --wallet-url http://127.0.0.1:8899 wallet create --to-console
+  # 3. import your exported private key (the `5…`/`PVT_K1_…` WIF from §3)
+  cleos --wallet-url http://127.0.0.1:8899 wallet import --private-key <WIF>
+  # 4. later sessions / after the unlock-timeout: re-unlock
+  cleos --wallet-url http://127.0.0.1:8899 wallet unlock --password <pw>
   ```
-  (`keosd` starts on demand; see `07` §2. In the dev image all three run in-container.)
+  (`--wallet-url` must match keosd's `--http-server-address`; omit both to use cleos's default
+  keosd. More in `07` §2.)
 - **Deploy:**
 
   ```bash
@@ -56,38 +68,83 @@ Ultra's internal deploy runbooks `[internal]`, and on-chain verification notes.
 - Endpoints: use the §1 table in `07` (primary `api.testnet.ultra.eossweden.org`;
   `api.testnet.ultra.io` is DEAD).
 
-## 3. Account realities (both networks)
+## 3. Accounts: first-time onboarding + realities (both networks)
 
-- You deploy to an **Ultra Pro Wallet** (self-custody `1aa2aa3aa4aa` account) — Ultra
-  Accounts (EBA) are backend-managed and can't hold your contract. Docs are explicit:
-  *"an Ultra Pro Wallet is necessary for deploying smart contracts."*
+**Mainnet contract deployment is permissionless** — Ultra opened the chain (*"any developer can
+create and deploy their smart contracts… developers only need to pay for RAM and deploy"*,
+[ultra.io announcement](https://ultra.io/opening-ultras-blockchain-enabling-uniq-creation-smart-contract-deployment-for-everyone/)),
+so there is **no Ultra authorization and no KYC/KYB**. You need three things: an account whose
+private key you can export, some **UOS**, and enough **RAM**.
+
+**Brand-new to Ultra? The zero-to-deploy-key on-ramp:**
+
+1. **Register an Ultra account** at `https://ultra.io` (free) and **install the Ultra Wallet
+   extension** + sign in (`06`). You now have an **Ultra Account (EBA)** and its keys.
+2. **Get UOS** — a little, to buy RAM (and to create a Pro Wallet if you want one):
+   - **Simplex** — the wallet's built-in fiat on-ramp (card/bank → UOS), where supported; or
+   - **Bridge** — buy **ERC-20 UOS on Uniswap** (Ethereum) and move it over with the
+     **Ultra bridge** (`bridge.ultra.io`) to your Ultra mainnet account.
+3. **Choose the account you deploy to** — either works:
+   - **Ultra Account (EBA)** — you can now **export its private key** from the extension and use
+     it directly (simplest). Caveat: an EBA's **`owner` permission is null**, so you can't
+     reset/rotate its `active` key yourself.
+   - **Ultra Pro Wallet** (recommended) — "Create an Ultra Pro Wallet" in the wallet UI
+     (`newnonebact`, ~2 USD in UOS). You hold **both `owner` and `active`**, so if the `active`
+     key ever leaks you can reset it with `owner`. That recovery control is the security reason
+     to prefer it for anything serious.
+4. **Export the account's private key** from the extension (account → settings / manage keys →
+   **Export Private Key** → a `5…` or `PVT_K1_…` WIF). ⚠️ **This is the bridge to `cleos`** — it's
+   exactly the `<WIF>` in `cleos wallet import --private-key <WIF>` (§2). It controls the account
+   **and its funds**: keep it in a **gitignored `.env`**, never commit / log / print it, never
+   paste it into a dapp, and **if you drive `cleos` through an AI agent, tell the agent to never
+   read, echo, or log anything from `.env`.**
+5. **Buy RAM and deploy** — pure `cleos` from here (§2): unlock the wallet → `buyrambytes` →
+   `set contract` → `set account permission … --add-code` → verify (§5/§7).
+
+> **It's the same flow you already validated locally.** Mainnet deployment is the exact `cleos`
+> sequence you ran against the local chain (`04`) — the only differences are `-u <mainnet-rpc>`
+> and the mainnet chain id (which `cleos` reads from that endpoint). The contract, ABI, and
+> commands are unchanged.
+
+> **Testnet** is simpler still: the faucet (§2) hands out a Pro-Wallet-style account from a
+> public key plus free UOS — `cleos create key --to-console`, no Simplex/bridge needed.
+
+**Account realities:**
+
+- Deploy target: an **Ultra Account (EBA, `aa1aa2aa3aa4`)** or an **Ultra Pro Wallet
+  (`1aa2aa3aa4aa`)** — both are self-custody once you export the key; the Pro Wallet also gives
+  you `owner`, so prefer it when you want key rotation/recovery.
 - Names are auto-generated; you cannot pick one. Dotted vanity names (`ultra.dex` style)
   are created by privileged accounts only — i.e. **granted by Ultra** (Corporate wallet /
   first-party arrangement).
-- Create programmatically from an existing account:
+- Create a Pro Wallet programmatically from an existing account:
   `cleos push action eosio newnonebact '{"creator":"<payer>","owner":{...},"active":{...},
   "max_payment":"1.00000000 UOS"}' -p <payer>` (~2 USD in UOS, oracle-priced). In the
   wallet UI: "Create an Ultra Pro Wallet".
 
-## 4. Mainnet — what is actually gated
+## 4. Mainnet — permissionless deployment
 
-There is **no on-chain setcode whitelist** in `eosio.system`, but three layers make
-mainnet deployment non-anonymous in practice:
+Ultra **opened smart-contract deployment to everyone**: *"Previously, deploying smart contracts
+needed authorization from the Ultra team. Now, any developer can create and deploy their smart
+contracts on Ultra's blockchain… developers only need to pay for RAM and deploy"*
+([ultra.io](https://ultra.io/opening-ultras-blockchain-enabling-uniq-creation-smart-contract-deployment-for-everyone/)).
+Concretely:
 
-1. **Ultra Pro Wallet required** (see §3).
-2. **RAM is KYC-gated:** new accounts are capped at **10 KB** RAM until KYC/KYB with
-   Ultra; a real contract (wasm ~50 KB+ plus tables) cannot fit. Completing KYC lifts the
-   cap (unused-RAM ceiling 10 MB; bulk purchases are developer-account-only). This is the
-   enforcement lever behind the docs' statement that *"Ultra requires that developers who
-   wish to deploy smart contracts on Ultra platform perform a Know Your Client
-   procedure."*
-3. **Governance backstops:** `ultra.cntmgr` can kill-switch specific actions chain-wide,
-   and `eosio.wrap` + 2/3 BPs can freeze accounts — bad actors get handled.
+- **No on-chain setcode whitelist, no Ultra authorization, and no KYC/KYB.** Any account with
+  UOS and enough RAM can `set contract`. (Some older developers.ultra.io tutorial pages still
+  say a Pro Wallet + KYC are required — that predates the opening; the announcement and the live
+  chain are authoritative. `eosio.kyc` exists for on-chain identity certificates but does **not**
+  gate deployment.)
+- **RAM is the only real cost.** New accounts start with Ultra's sponsored ~5 KB, so you buy
+  what your contract needs (`buyrambytes`; refundable via `refundram`). No pre-KYC cap.
+- **Governance backstops still exist** (they don't gate honest deploys): `ultra.cntmgr` can
+  kill-switch specific actions chain-wide, and `eosio.wrap` + 2/3 BPs can freeze accounts — bad
+  actors are handled after the fact, not blocked at deploy time.
 
-So the external-developer mainnet recipe is: create Pro Wallet → complete KYC/KYB with
-Ultra (start at developers.ultra.io / `developers@ultra.io`) → buy UOS → buy RAM →
-`cleos set contract` (identical mechanics to testnet, just a mainnet endpoint). For the
-public NFT GraphQL API you separately request a `client_id` from `developers@ultra.io`.
+So the mainnet recipe is: get an account + export its key (§3) → buy UOS → buy RAM →
+`cleos set contract` — **identical mechanics to the local chain you already validated, only the
+`-u <mainnet-rpc>` endpoint (and its chain id) changes.** For the public NFT GraphQL API you
+separately request a `client_id` from `developers@ultra.io`.
 
 **First-party/system contracts** are a different class: deployed through the
 `eosio.msig` producer multisig (propose → BP approvals + Ultra → exec) — e.g.

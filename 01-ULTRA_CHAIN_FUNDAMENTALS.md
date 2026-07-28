@@ -40,8 +40,8 @@ users do NOT choose names.** Four types
 
 | Type | Name pattern | Keys | Use |
 | --- | --- | --- | --- |
-| **Ultra Account** (formerly EBA) | `aa1aa2aa3aa4` | Ultra-backend-managed, recoverable | end users (game client, wallet) |
-| **Ultra Pro Wallet** (formerly non-EBA) | `1aa2aa3aa4aa` | self-custody | **developers — the only type you deploy contracts to** |
+| **Ultra Account** (formerly EBA) | `aa1aa2aa3aa4` | key exportable; `owner` is null (backend-recoverable) | end users; **also deployable-from** (can't self-rotate `active` — see `08` §3) |
+| **Ultra Pro Wallet** (formerly non-EBA) | `1aa2aa3aa4aa` | self-custody (`owner` + `active`) | developers — **recommended** for deploying (full key control) |
 | Ultra Premium | e.g. `devname123` | self-custody | Ultra creates manually |
 | Ultra Corporate | e.g. `partner.contract` | self-custody | Ultra creates manually (dotted names) |
 
@@ -87,8 +87,8 @@ users do NOT choose names.** Four types
   - bought in UOS (`buyram`/`buyrambytes`), Bancor-priced in USD terms; refundable via
     `refundram` (purchase fee — docs state 5% in one place and 10% in another; verify
     live — is not refunded);
-  - **new accounts are capped at 10 KB RAM until KYC/KYB**; after KYC the cap lifts
-    (unused-RAM ceiling 10 MB, single-buy cap 10 MB);
+  - **new accounts start with Ultra's sponsored ~5 KB RAM**; buy more with
+    `buyram`/`buyrambytes` as needed — **no KYC gate; deployment is permissionless** (`08` §4);
   - **developers pay RAM for their users** (contract pays for user rows — see the notify
     RAM rule in `03`), and only registered developers can buy in bulk;
   - Ultra can gift RAM (`giftram`) and runs sponsored tiers (free storage for keys/
@@ -181,9 +181,9 @@ documented publicly under developers.ultra.io → blockchain/contracts.
 1. Names auto-generated; account types EBA vs Pro Wallet; dotted names are privileged.
 2. `active` can't rotate its own keys; EBA rotation via `eosio.eba`.
 3. Account creation gated (EBA = Ultra IdP only); Ultra sponsors creation RAM.
-4. **Mainnet contract deployment requires an Ultra Pro Wallet + KYC/KYB** (RAM cap 10 KB
-   pre-KYC is the enforcement lever) — details `08` §4.
-5. RAM: dev-pays-for-users, KYC-gated caps, Ultra reserve/gifting, anti-speculation refund.
+4. **Mainnet contract deployment is permissionless** — no Ultra authorization, no KYC; any
+   account (EBA key now exportable, or a Pro Wallet) + UOS + RAM — details `08` §4.
+5. RAM: dev-pays-for-users, buy/refund via `buyrambytes`/`refundram`, Ultra reserve/gifting.
 6. Resources: POWER (CPU+NET merged) + free rate-limited txs + predicate sponsorship;
    no gas, no PowerUp.
 7. One `eosio.token` for all fungibles; per-symbol tax/burn configs; premium symbols
