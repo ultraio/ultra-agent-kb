@@ -146,6 +146,11 @@ void tipjar::withdraw( const name& to ) {
 Plus `ricardian/tipjar.contracts.md.in` (a clause for `withdraw`) and the standard
 `CMakeLists.txt` (`03` §1).
 
+> ⚠️ **`MAX_NOTE_LEN = 256` is optimistic.** The on-chain memo is `tip,<note>`, so
+> `eosio.token`'s own 256-byte memo cap (`03` §4.6) rejects a note longer than **251** chars
+> (`256 − len("tip,")`) *before* `handle_tip`'s check runs. The bundled template keeps 256 for
+> simplicity; tighten `MAX_NOTE_LEN` to 251 in a real memo-dispatch contract.
+
 ## 3. Build + test (the exact session)
 
 > **Public path (no private checkout).** The commands in this section are the *internal*

@@ -123,7 +123,7 @@ export default class Test extends UltraTest {
 Plugin bootstrap order matters: `genesis` → `system` (deploys eosio.bios/system/token/msig,
 inits UOS) → `ultraContracts` (Ultra system contracts) → `ultraStartup` (creates
 `ultra.eosio`/`ultra`/faucet accounts, seeds balances, initializes the oracle, gifts
-default RAM 10240 bytes).
+default RAM 10240 bytes — a local-test default, distinct from mainnet's ~5 KB sponsorship).
 
 ## 4. The API surface you'll actually use
 

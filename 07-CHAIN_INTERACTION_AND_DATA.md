@@ -101,7 +101,7 @@ Table scope semantics: `get table <code> <scope> <table>` — scope is often an 
 
 - **`@wharfkit/antelope` `APIClient`** — the shipped dapps' choice
   (`client.v1.chain.get_table_rows({code, scope, table, json:true})`,
-  `get_currency_balance`, `get_info`). Snippets in `05` §4.
+  `get_currency_balance`, `get_info`). Snippets in `05` §3.
 - **Raw HTTP:** `POST <endpoint>/v1/chain/get_table_rows` with JSON body — same shape.
 - **Account discovery by key:** `POST /v1/chain/get_accounts_by_authorizers` with either
   `{"keys":["EOS…"]}` or `{"accounts":[{"actor":"...","permission":"active"}]}` — mind the
