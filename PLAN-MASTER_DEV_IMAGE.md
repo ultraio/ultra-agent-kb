@@ -7,8 +7,9 @@ the **public image refreshed 2026-07-24** (gaps 4,5 closed): `quay.io/ultra.io/3
 (green, Tip Jar 6/6 on a fresh pull). Pre-Savanna build preserved at tag `618e324f…`.
 **wallet-sdk `exports` map SHIPPED 2026-07-24** (`@ultraos/wallet-sdk@0.3.2`, gap 6 closed).
 **CI-reproducible image LIVE 2026-07-24** — `ultra.docker` `external.yml` builds + pushes the
-full image itself (PAT + quay push secrets fixed; templates/smoke/versions.json added). Nothing
-outstanding.
+full image itself (PAT + quay push secrets fixed; templates/smoke/versions.json added). No
+blockers; optional operational follow-ups (quay robot token, automated refresh triggers, an
+optional `:e2e` Playwright variant) are tracked in `HANDOFF-EXECUTION.md` §3.
 **Last Updated:** 2026-07-24
 **Goal:** make the KB's promise true for the public: *an agent given this KB and Docker can
 develop → build → test → launch a complete dapp on a local chain, and be walked to a
@@ -66,7 +67,7 @@ One public image, published to **`quay.io/ultra.io/`** (the existing public org)
 7. Non-root user, `/opt/ultra_workdir` volume convention (docs parity), ports 8888/9876
    exposed.
 
-Size target: ≤ ~2 GB (the current image is 633 MB; CDT + node + playwright add the bulk).
+Size target: ≤ ~2 GB (the pre-refresh base was 633 MB; the shipped `:latest` is **~2 GB** — within target).
 If Playwright bloats it, split `ultra-dev:slim` (1–4) and `ultra-dev:e2e` (1–6).
 
 ## 3. How it gets built (internal CI — the private repos stay private)
@@ -132,8 +133,8 @@ gaps, by severity:
 | 1 | The 4 `ultratest-*-plugin` packages are not on npm; spec `package.json`s reference a private checkout; 2 bundled plugin dirs lack `package.json` | **BLOCKER** | Ship `package.json` for the bundled `genesis`+`system` plugins; document the canonical public spec `package.json` | ✅ **DONE** — ultratest2 **1.0.4** (PR #122) + `00` §3 recipe |
 | 2 | `@ultraos/ultra-signer-lib@1.7.4` rejects `http://0.0.0.0:8888` → **every fresh ultratest2 install fails at genesis** (floating `^1.6.2` dep) | **BLOCKER — live regression** | Allowlist `0.0.0.0`, republish; raise ultratest2's floor | ✅ **DONE** — signer-lib **1.7.5** (PR #53), ultratest2 floor → `^1.7.5` (1.0.4) |
 | 3 | Genesis plugin hardcodes `<contracts>/../../contracts/eosio.bios.1.8.3` (source layout); image ships only `build/contracts` | DEGRADED | Add a fallback in the plugin | ✅ **DONE** — bios fallback in ultratest2 1.0.4 |
-| 4 | Image node 19 / npm 9: `npm i -g` errors (works by accident), engine warnings | DEGRADED | Node 22 LTS in the image; preinstall ultratest2 | ⏳ needs the §2 master image (npm-9 error is cosmetic today) |
-| 5 | nodeos v5.0.2 pre-Savanna + old system contracts (no `ultra.bridge`, missing newer Ultra actions) | DEGRADED (latent) | The §2 image refresh; treat image-green as necessary-not-sufficient until then | ⏳ needs the §2 master image |
+| 4 | Image node 19 / npm 9: `npm i -g` errors (works by accident), engine warnings | DEGRADED | Node 22 LTS in the image; preinstall ultratest2 | ✅ **DONE** — refreshed image ships **Node 22.11.0** + `@ultraos/ultratest2@1.0.4` preinstalled |
+| 5 | nodeos v5.0.2 pre-Savanna + old system contracts (no `ultra.bridge`, missing newer Ultra actions) | DEGRADED (latent) | The §2 image refresh; treat image-green as necessary-not-sufficient until then | ✅ **DONE** — refreshed image ships **nodeos v6.2.2-3.0.0 (Savanna)** + `eosio.contracts` 5.1.0 (incl. `ultra.bridge`) |
 | 6 | `@ultraos/wallet-sdk@0.3.1` unloadable in plain Node — compiled `src/index.js` used directory/extensionless internal imports (`ERR_UNSUPPORTED_DIR_IMPORT` under Node ESM); bundlers resolved them | NIT (dapps) | Bundle to a single self-contained file + `exports`/`types` map | ✅ **DONE** — **0.3.2 published** (bundled `dist/` + exports map; identical API surface) |
 | 7 | ultratest v1 interactive first-run prompt; ultratest2 docker-sock probe error in-container | NIT | Guard the probe | ✅ **DONE** — docker-sock probe silenced in ultratest2 1.0.4 |
 
@@ -175,8 +176,8 @@ gaps, by severity:
    (so the `exports` map is backward-compatible), and both already build/test green against
    0.3.2. No consumer manifest bump is required — their existing carets cover 0.3.2.
 
-The §2 master image then removes the remaining drift (gaps 4–5) and makes the whole
-toolchain one `docker pull`.
+The §2 master image **shipped 2026-07-24** — the CI-built `3rdparty-devtools:latest` removed the
+remaining drift (gaps 4–5), so the whole toolchain is now one `docker pull`.
 
 > **Publish-token note (2026-07-23):** the GitHub org `NPM_TOKEN` used by CI publishes
 > `@ultraos/ultra-signer-lib` fine but **lacks write scope for `@ultraos/ultratest2`** (CI
@@ -186,6 +187,14 @@ toolchain one `docker pull`.
 > fixed by PR #123.)
 
 ## 7. As-built — first manual master image (2026-07-23)
+
+> **Historical — superseded.** This records the *first manual overlay build* (2026-07-23). It was
+> replaced 2026-07-24 by the CI-built `3rdparty-devtools:latest`/`:0.3.1` (see the banner +
+> `HANDOFF-EXECUTION.md` §1), which ships **CDT 4.1.1**, **nodeos v6.2.2-3.0.0**, Node 22.11.0,
+> `@ultraos/ultratest2@1.0.4`, and a CI-reproducible **21-dir** system-contract set (`eosio.*` +
+> `ultra.bridge/swap/…`, no local DeFi suite). The CDT-4.0.1, nodeos-pinning and "remaining for a
+> durable image" notes below were the state of *that* manual build and are now **closed** — kept
+> only as the record.
 
 **Published to (tag since DELETED):** the first manual build was pushed to
 `quay.io/ultra.io/eosio-docker-starter:ultra-dev-6.2.2` — a stray tag in the wrong repo
@@ -215,13 +224,12 @@ avoids shipping CDT's 2.9 GB build tree. Overlaid:
 compiles the current contracts fine; a proper CDT-4.1.1 *install* tree (not the build tree) is
 the follow-up.
 
-**Remaining for a durable image:** (a) a CI-reproducible build — the `ultra.docker` pipeline
-(`external.yml`) is the vehicle, but its version source (`blockchain-manager` main
-`versions.json`) is pinned to nodeos **5.0.2**, so mainnet-currency there needs a
-blockchain-manager bump (affects other consumers) + a dispatch; the node-22 + preinstall-ultratest2
-Dockerfile step landed via `ultra.docker` PR #15. (b) an optional `:e2e` variant with Playwright
-+ chromium for in-container dapp E2E (plan §2.5–2.6). (c) decide whether this becomes the KB's
-default `docker pull` target and/or moves to a purpose-named repo/tag.
+**Remaining for a durable image — resolved 2026-07-24:** (a) ✅ the CI-reproducible build
+shipped — `ultra.docker` `external.yml` builds + pushes the full image, with `blockchain-manager`
+`versions.json` bumped to nodeos `6.2.2-3.0.0` / CDT `4.1.1-3.0.0` / contracts `5.1.0`
+(blockchain-manager #61; ultra.docker #15–17). (c) ✅ decided — this **is** the KB's default
+target, `quay.io/ultra.io/3rdparty-devtools:latest`. (b) still optional/open: a `:e2e` variant
+with Playwright + chromium for in-container browser E2E (plan §2.5–2.6; `HANDOFF-EXECUTION.md` §3.3).
 
 
 ## 8. Clean-room re-validation on the public path (2026-07-24)
