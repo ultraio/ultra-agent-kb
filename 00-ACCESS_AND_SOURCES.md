@@ -45,6 +45,20 @@ some repos are public but none are developer-toolchain images.)
 
 ## 3. Practical bootstrap paths
 
+> **Prerequisites (host) — the ONLY thing you must install for the public path.**
+> **Docker, with a working daemon** — verify FIRST with `docker info` (it must succeed) — plus
+> network egress (to `docker pull` the ~2 GB image and to `npm install` public packages).
+> **That is the entire host requirement.** If `docker info` fails you cannot compile a contract
+> or run a local chain on this machine: that is an **environment limitation, not a gap in this
+> KB** — say so and stop, don't fall back to a host `cdt-cpp`/`nodeos`. Everything else —
+> `cdt-cpp`, `nodeos`/`cleos`/`keosd`, **Node 22 + npm**, `ultratest2`, the built system
+> contracts — is inside the image, and you can even build + unit/integration-test the dapp
+> inside the same container. (Your dapp's own JS deps — `@ultraos/wallet-sdk`,
+> `@wharfkit/antelope`, vite/vitest — are pulled from public npm at install time: they need
+> network, not a separate install.) Optional, per workflow: host Node+npm only if you develop
+> the dapp *outside* the container; Chrome + the Ultra Wallet extension only for real-extension
+> manual QA (the mocked-wallet path is headless and needs neither).
+
 **Internal (Ultra dev machine):** everything in `02` §1 — native CDT/nodeos/ultratest2,
 private checkouts, the DeFi exemplars. Fastest, and what the worked example used.
 
