@@ -127,7 +127,11 @@ contract uses u128 saturation, either mirror it or document the divergence.
 > something like:
 > `const m = e?.response?.json?.error?.details?.map(d => d.message).join(',') ?? e.message`.
 
-- **Unit (vitest):** the math mirror. `npm test` = `vitest run`.
+- **Unit (vitest):** the math mirror. `npm test` = `vitest run`. ⚠️ **Scope vitest away from your
+  Playwright specs** — vitest's default `include` matches `*.spec.ts` too, so `vitest run` will
+  try to execute the E2E specs and crash importing `@playwright/test`. In `vite.config.ts` set
+  `test: { include: ['src/**/*.test.ts'] }` (name unit tests `*.test.ts`, E2E `*.spec.ts`), or
+  add `test: { exclude: ['tests/e2e/**', ...configDefaults.exclude] }`.
 - **E2E (Playwright) against a REAL seeded local chain** — the shipped pattern:
   1. Terminal A: boot the chain — `ultratest2 … -t $PWD/e2e_setup.ts --keep-alive`
      (seeds contract + users re-keyed to the dev key; `04` §6).

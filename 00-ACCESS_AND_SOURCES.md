@@ -58,6 +58,12 @@ some repos are public but none are developer-toolchain images.)
 > network, not a separate install.) Optional, per workflow: host Node+npm only if you develop
 > the dapp *outside* the container; Chrome + the Ultra Wallet extension only for real-extension
 > manual QA (the mocked-wallet path is headless and needs neither).
+>
+> **Windows:** run all of this from **WSL2** (Docker Desktop + the WSL2 backend), not native
+> git-bash/CMD. In git-bash, MSYS rewrites the `-v` mount and `docker exec` paths (`/opt/…`
+> becomes a Windows path) and the mount/compile silently target the wrong place; if you must
+> use git-bash, prefix the command with `MSYS_NO_PATHCONV=1` (or double the leading slash:
+> `//opt/…`). WSL2 avoids the entire class of problem — all paths are native Linux.
 
 **Internal (Ultra dev machine):** everything in `02` §1 — native CDT/nodeos/ultratest2,
 private checkouts, the DeFi exemplars. Fastest, and what the worked example used.

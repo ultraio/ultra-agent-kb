@@ -125,6 +125,12 @@ Secondary index example (from `pair_v0`):
 `indexed_by<"bytokens"_n, const_mem_fun<pair_v0, checksum256, &pair_v0::by_tokens>>`.
 Singleton: `typedef eosio::singleton<"config.a"_n, config_v0> config_singleton;`.
 
+**Header trivia that bites (verified):** `<eosio/eosio.hpp>` does NOT transitively pull in
+everything. `current_time_point()` / block-time helpers need `#include <eosio/system.hpp>`;
+the `time_point_sec` type + durations need `<eosio/time.hpp>`; `checksum256` etc. need
+`<eosio/crypto.hpp>`. Symptom: *"use of undeclared identifier 'current_time_point'"* on code
+that looks correct — add the header, not a workaround.
+
 ## 4. The transfer + memo-dispatch pattern (inflows)
 
 Antelope has **no ERC-20 allowance/`transferFrom`**. Users move funds INTO your contract by
@@ -139,6 +145,11 @@ sending `eosio.token::transfer` **to** your account with a routing **memo**; you
 3. `split(memo, ',')` → route to handlers (`swap,<pair>,<min_out>,<receiver>` style).
 4. **Revert on any unrecognized memo** — otherwise funds land silently and are lost.
 5. Memo entrypoints never appear in the ABI action list — document them.
+6. **`eosio.token` caps the memo at 256 bytes itself** (`check(memo.size() <= 256, "memo has
+   more than 256 bytes")`, verified in `eosio.token.wasm`) — that revert fires in the **token
+   contract, before your `on_notify` ever runs**. So the ENTIRE routing memo (verb + every arg)
+   must fit in 256 bytes; a free-text field pushed near 256 trips the token contract, not your
+   own length check. Budget the memo, and put user-supplied text last/short.
 
 Outflows are named actions that end in an **inline** `eosio.token::transfer` from
 `get_self()` (requires `eosio.code` on your `active` permission — the deploy step

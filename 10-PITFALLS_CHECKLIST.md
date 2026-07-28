@@ -9,10 +9,14 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       context" → contract pays its own RAM in `on_notify`; gift the contract account RAM.
 - [ ] Deposit handler: guard `from==self / to!=self`, validate `get_first_receiver()`,
       **revert unknown memos**, reject taxed tokens.
+- [ ] `eosio.token` caps the memo at **256 bytes** and reverts (`memo has more than 256 bytes`)
+      BEFORE your `on_notify` runs — the whole routing memo must fit (`03` §4).
 - [ ] Never validate funds by reading your own balance — explicit due/repaid accounting.
 - [ ] Effects before interactions; closing assertion for composed flows.
 - [ ] Names ≤12 chars (account/action/table); `*.a` table + `*_v0` struct versioning.
 - [ ] u128 intermediates + overflow guards; floor toward the protocol.
+- [ ] `<eosio/eosio.hpp>` isn't enough: `current_time_point()` needs `<eosio/system.hpp>`,
+      `time_point_sec` `<eosio/time.hpp>`, `checksum256` `<eosio/crypto.hpp>` (`03` §3).
 - [ ] New contract registered in `build.sh` contract_list + `contracts/CMakeLists.txt`
       (test helpers → `ultratests/CMakeLists.txt`).
 - [ ] Work in your OWN `eosio.contracts` worktree `[internal]` — DeFi exemplars are in
@@ -22,10 +26,14 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
 
 - [ ] `ultratest2 --help` HANGS — never run it. Pipe spec output to a file.
 - [ ] Always pass `--contracts-dir-path=<...>/build/contracts`.
-- [ ] `requiredAccounts` have RANDOM keys — re-key via `updateauth` for external signing
-      ("declares authority … but does not have signatures for it").
+- [ ] `requiredAccounts` have RANDOM keys — re-key for external signing ("declares authority …
+      but does not have signatures for it"). Use the raw `eosio::updateauth` action, or the
+      helper `ultraAPI.updateAuth(name,perm,parent,threshold,keys,accounts)` — positional args on
+      `ultraAPI` **directly**, NOT `ultraAPI.system.updateAuth(…,auth)` (that throws) (`04` §4).
 - [ ] `publishContract` does NOT create the account — `createAccountFull({giftRam})` first,
       then `addEosioCodePermission`.
+- [ ] Fund senders before transfer tests — an unfunded account's transfer reverts `overdrawn
+      balance`; `transferTokens('ultra.eosio', acc, 1000)` in setup (`04` §4).
 - [ ] `assertAsyncThrow(promise, x)` — x is an error SUBSTRING.
 - [ ] Stuck chain: `pkill -x nodeos`; flaky infra errors (ECONNRESET, duplicate
       transaction, feature activation) → retry.
@@ -45,6 +53,8 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       on network change; localhost chainId is per-boot (via `get_info`).
 - [ ] Asset strings exact precision (`"1.00000000 UOS"`).
 - [ ] Math mirror must equal contract math bit-for-bit (BigInt; vitest-enforced).
+- [ ] Scope vitest so it doesn't run Playwright `*.spec.ts` (its default `include` matches them)
+      — `test.include:['src/**/*.test.ts']` or `test.exclude:['tests/e2e/**']` (`05` §6).
 - [ ] **`bool` table fields read back as `1`/`0`, never `true`/`false`** — `row.flag === true`
       is always false. Use `Boolean(row.flag)`. (Numeric `uint64` may arrive as a string.)
 - [ ] A WharfKit error's contract message is in `err.response.json.error.details[].message`,

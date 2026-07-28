@@ -134,15 +134,34 @@ default RAM 10240 bytes).
   UOS** (`transferTokens('ultra.eosio', acc, 1000)` sends 1,000 UOS);
   `transferCustomTokens(from,to,quantity,memo)` takes an **exact asset string**
   (`"5.00000000 UOS"`) and is the workhorse for memo-dispatch entrypoints; also
-  `issueTokens`, `createTokens`, `getAccountBalance`.
-- `.system`: `addEosioCodePermission(acct, perm, code)`, `updateAuth`, `setpriv`.
-  - `updateAuth(account, permission, parent, auth)` re-keys an account — needed when you must
-    sign as that account from **outside** the chain (dapp E2E, an external signer), because
-    `requiredAccounts()` accounts get **random** keys you never see. `auth` is the standard
-    authority object: `{threshold: 1, keys: [{key: <PUBLIC_KEY>, weight: 1}], accounts: [],
-    waits: []}`, e.g. `updateAuth('alice', 'active', 'owner', {...})`.
-  - **Simpler alternative** used by the clean-room build: don't re-key at all — sign external
-    transactions as **`eosio`**, which already holds the well-known dev key (`04` §5).
+  `issueTokens`, `createTokens`, `getAccountBalance`. ⚠️ An account must already **hold UOS**
+  before it can transfer — fund senders in setup (`transferTokens('ultra.eosio', acc, 1000)`,
+  as the Tip Jar setup does) or the transfer reverts `overdrawn balance` (unfunded) /
+  `no balance object found` (balance row never opened).
+- `.system`: `addEosioCodePermission(acct, perm, code)`, `setpriv`, plus RAM/permission
+  helpers (`giftram`, `buyrambytes`, `linkauth`, …). ⚠️ **`updateAuth` is NOT on `.system`** —
+  that object only *calls* it internally; re-keying is below.
+- **Re-keying an account to a known key** — needed to sign as that account from **outside** the
+  chain (dapp E2E, an external signer), because `requiredAccounts()` accounts get **random**
+  keys you never see. Symptom otherwise: *"transaction declares authority … but does not have
+  signatures for it"*. Two ways; the raw action is version-proof and is what the image's own
+  `templates/tipjar/spec/e2e_setup.ts` uses:
+  - **Raw action (recommended)** — push `eosio::updateauth` directly, so it can't drift from the
+    tool version:
+    ```ts
+    ultraAPI.transactOrThrow([{ account: 'eosio', name: 'updateauth',
+      authorization: [{ actor: 'alice', permission: 'owner' }],
+      data: { account: 'alice', permission: 'active', parent: 'owner',
+              auth: { threshold: 1, keys: [{ key: DEV_PUB, weight: 1 }], accounts: [], waits: [] } } }]);
+    ```
+    Re-key `active` (parent `owner`) first, then `owner` (parent `''`).
+  - **Helper:** `ultraAPI.updateAuth(name, permission, parent, threshold, keys, accounts)` —
+    ⚠️ it lives on `ultraAPI` **directly, not `ultraAPI.system`**, and takes **positional** args
+    (`threshold: number`, `keys: {key,weight}[]`, `accounts: {weight,permission}[]`), **not a
+    single `auth` object**. Verified against the installed `@ultraos/ultratest2@1.0.4`; the older
+    `ultraAPI.system.updateAuth(…, auth)` form is wrong and throws *"not a function"*.
+  - **Simplest** when you don't need a *specific* actor: don't re-key — sign external
+    transactions as **`eosio`**, which already holds the dev key (`04` §5).
 - `.oracle`, `.faucet`, plus per-contract helpers in the plugin's `api/`.
 
 **Setup (`SystemAPI`):**
