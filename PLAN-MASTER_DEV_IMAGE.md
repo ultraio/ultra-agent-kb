@@ -112,7 +112,7 @@ A small internal pipeline (GitLab CI in `ultraio/devops`, or GitHub Actions in t
 A fresh machine with only Docker: an agent reading the KB completes the entire Tip Jar
 flow (compile → spec suite green → keep-alive chain → dapp vitest/build → Playwright
 green) **inside/against the container**, and doc `08` then routes a real mainnet deploy
-(any account + UOS + RAM + `cleos set contract` — permissionless, no KYC; cleos from the same image).
+(any account + UOS + RAM + `cleos set contract` — permissionless; cleos from the same image).
 
 **Met** — and exceeded: the clean-room run (§8) built a *new* contract + dapp, not the Tip Jar.
 **One caveat:** real-extension **browser** Playwright E2E was not achievable headless (needs the
@@ -282,6 +282,6 @@ also emits the ABI; `06` §3.3's two-action-shapes warning; `07` §1's endpoint 
 live — chain IDs match, the "DEAD" endpoints really are dead); `01` §3's
 `buyram`/`buyrambytes`/`refundram` semantics.
 
-**Remaining residue in `08`** (not doc bugs): mainnet deployment is now permissionless (no KYC)
-and the UOS on-ramp is documented (§3); what's left is that §5 is a runbook *shape*, not a
+**Remaining residue in `08`** (not doc bugs): mainnet deployment is now permissionless and the
+UOS on-ramp is documented (§3); what's left is that §5 is a runbook *shape*, not a
 worked mainnet transcript.
