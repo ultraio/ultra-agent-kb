@@ -20,6 +20,9 @@ sibling repos on this machine. When a doc conflicts with code, the code wins —
    that does X."* The router below tells it what to read for each phase.
 2. **Bootstrap tooling** — internal machine: `02` §1 (native toolchain). Public/fresh
    machine: `00` §3 (docker image + npm; no private repos, no compiling from source).
+   **The only host prerequisite for the public path is a working Docker daemon — verify
+   `docker info` FIRST. If it fails, Tier 2 (contract compile + local chain) cannot run on
+   this machine, and that is an environment limitation, not a KB gap.**
 3. **Develop locally**: contract (`03`) → spec suite green on a real local chain (`04`) →
    dapp + wallet integration (`05`/`06`) → Playwright E2E against a keep-alive seeded
    chain (`04` §6, `05` §6). The Tip Jar (`09`) is the full worked template.
