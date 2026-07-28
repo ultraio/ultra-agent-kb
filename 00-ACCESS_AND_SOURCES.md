@@ -85,7 +85,8 @@ docker exec ultra bash -lc ultra-smoke
 Ships **nodeos/cleos v6.2.2-3.0.0 (Savanna, mainnet-matching)**, **CDT 4.1.1** (`cdt-cpp`),
 **Node 22**, **`@ultraos/ultratest2@1.0.4` preinstalled** (so `ultratest2 -t <spec>` just
 works), the **current `eosio.contracts` master build** at
-`/opt/eosio.contracts/build/contracts` (adds `ultra.bridge/dex/farm/lend/rfq`), the Tip Jar
+`/opt/eosio.contracts/build/contracts` (21 dirs — the `eosio.*` system set plus
+`ultra.bridge/swap/avatar/claim/cntmgr/rng/…`; no local DeFi suite), the Tip Jar
 worked example at `/opt/templates/tipjar`, and `/usr/local/bin/ultra-smoke` (self-test). Build
 inputs are recorded in `/opt/versions.json`. Validated 2026-07-24 — `ultra-smoke` green
 (Tip Jar 6/6) on a fresh pull of the published tag. Built + published by CI
