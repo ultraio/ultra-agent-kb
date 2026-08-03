@@ -206,6 +206,9 @@ Outflows are named actions that end in an **inline** `eosio.token::transfer` fro
 - No admin path that can move user funds; plan governance handoff (`08` §5).
 - Assert invariants at transaction close (K-invariant, solvency, conservation).
 - Test negative paths: every assert needs a spec that triggers it (`04`).
+- Validate exact transfer amounts where the action expects a fixed price/fee —
+  don't just check `quantity.amount > 0`; a caller can send less than expected
+  and still pass a naive positive-amount check.
 
 Deep dives `[internal: ultraOS-doc]`: `ultra-defi/AGENT_CONTEXT.md` §6 (gotchas), the five
 contract specs `ultra-defi/0{1..5}-*.md` (design + audit records), and
