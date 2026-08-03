@@ -121,6 +121,12 @@ private key you can export, some **UOS**, and enough **RAM**.
   `cleos push action eosio newnonebact '{"creator":"<payer>","owner":{...},"active":{...},
   "max_payment":"1.00000000 UOS"}' -p <payer>` (~2 USD in UOS, oracle-priced). In the
   wallet UI: "Create an Ultra Pro Wallet".
+- **Pro Wallet accounts split owner/active keys** — the key you export for
+  `cleos wallet import` is usually the **active** key. Confirm which permission
+  you actually hold before signing a deploy (`cleos get account <name>` — check
+  whether the `active` or `owner` key matches what you imported). Assuming you
+  hold `owner` when you only hold `active` won't block the deploy itself, but
+  it can block a later recovery or governance action that needs `owner`.
 
 ## 4. Mainnet — permissionless deployment
 
@@ -139,6 +145,13 @@ Concretely:
 - **Governance backstops still exist** (they don't gate honest deploys): `ultra.cntmgr` can
   kill-switch specific actions chain-wide, and `eosio.wrap` + 2/3 BPs can freeze accounts — bad
   actors are handled after the fact, not blocked at deploy time.
+
+**Before you broadcast to mainnet:** this step is real money and irreversible
+once RAM is bought and code is set. If an AI agent prepared this deployment,
+have it state — out loud or in writing — the exact account name, the wasm
+sha256 it's about to deploy, and the RAM cost, and confirm all three yourself
+before the signing step runs. The agent should never hold or transmit your
+private key (§3 above) — you run the final signing command.
 
 So the mainnet recipe is: get an account + export its key (§3) → buy UOS → buy RAM →
 `cleos set contract` — **identical mechanics to the local chain you already validated, only the

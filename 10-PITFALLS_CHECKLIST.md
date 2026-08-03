@@ -21,6 +21,9 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       (test helpers → `ultratests/CMakeLists.txt`).
 - [ ] Work in your OWN `eosio.contracts` worktree `[internal]` — DeFi exemplars are in
       `/home/adam/spring/eosio.contracts-defi` (NOT the main checkout).
+- [ ] Exact-amount actions: validate `quantity == expected`, not just
+      `quantity.amount > 0` — a caller can underpay and still clear a naive
+      positive-amount check.
 
 ## Testing (`04`)
 
