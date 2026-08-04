@@ -1,6 +1,6 @@
 # 10 — Pitfalls Checklist (condensed)
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-08-04
 The one-page "why is this failing" list. Each item links to the doc with the full story.
 
 ## Contract (`03`, `04`)
@@ -21,6 +21,19 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       (test helpers → `ultratests/CMakeLists.txt`).
 - [ ] Work in your OWN `eosio.contracts` worktree `[internal]` — DeFi exemplars are in
       `/home/adam/spring/eosio.contracts-defi` (NOT the main checkout).
+
+## Security (`12`) — before shipping anything that moves value
+
+- [ ] **Auth names the right account** — `require_auth(<party who bears the cost>)` read from
+      state, never a user-supplied param, never `get_self()` for user-initiated spends.
+- [ ] **Inline-only helpers self-guard** `check(get_sender()==<parent>)`; `on_notify` handlers
+      carry **no** `require_auth` (they have no authority — guard by binding + receiver checks).
+- [ ] **Inbound value = three-part guard:** `from!=self` → `to==self` → `get_first_receiver()==
+      <token>`. Wildcard `*::` `on_notify` bindings *require* the first-receiver check.
+- [ ] **Inline-ordering trap:** you can't see an inline's state change mid-action (read-before ==
+      read-after). Effects before interactions; validate composed flows with a closing assertion.
+- [ ] **No on-chain RNG** (predictable — EOSPlay class); **no deferred-tx** patterns (don't exist
+      on Ultra); u128 intermediates + overflow guards.
 
 ## Testing (`04`)
 

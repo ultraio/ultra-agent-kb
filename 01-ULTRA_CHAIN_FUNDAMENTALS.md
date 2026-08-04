@@ -1,6 +1,6 @@
 # 01 — Ultra Chain Fundamentals
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-08-04
 **Read this once, first.** It is the platform mental model: what Ultra is, how it differs
 from vanilla EOSIO/Antelope, and the facts every contract and dapp decision rests on.
 Primary sources: `/home/adam/ultra.repos/docs-blockchain` (source of developers.ultra.io),
@@ -166,7 +166,8 @@ documented publicly under developers.ultra.io → blockchain/contracts.
 - **No synchronous inter-contract calls** (CDT 3–4.x). Composition = inline actions +
   notifications + closing assertions, all inside one atomic transaction.
 - **Inline actions execute depth-first**; `require_recipient` notifications run before the
-  next sibling action. This ordering is load-bearing (it's why flash loans work).
+  next sibling action. This ordering is load-bearing (it's why flash loans work). But inline
+  actions are *queued* — a parent cannot see its inline's state changes mid-action (`12` §1).
 - **No deferred transactions, no native cron** — scheduled behavior needs off-chain bots.
 - **Read-only actions** exist (`[[eosio::action, eosio::read_only]]`).
 - Whole-transaction atomicity: any assert anywhere reverts everything.
