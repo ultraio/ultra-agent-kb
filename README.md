@@ -1,6 +1,6 @@
 # Ultra Developer Knowledge Base — for AI Agents
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-08-04
 **Purpose:** give an AI agent (or a new developer) everything needed to go from a one-line
 prompt — *"build me a dapp that does X on Ultra"* — to a working smart contract, a tested
 web dapp integrated with the Ultra Wallet, and a deployment path to testnet/mainnet, without
@@ -47,6 +47,7 @@ dev loop needs is in `00`'s matrix.
 | See one complete end-to-end example | `09` |
 | Avoid known traps | `10` (checklist; each doc has its own gotchas too) |
 | Integrate a core contract (`eosio.token`, Uniqs/`eosio.nft.ft`, msig, oracle) | `11` |
+| Secure a contract (auth, fake-deposit, inline-ordering, attack classes) | `03` → `12` |
 | Know what's public vs private (repos, images, packages) | `00` |
 
 ## Contents
@@ -87,6 +88,11 @@ dev loop needs is in `00`'s matrix.
   abi` / `/v1/chain/get_abi`), how to read it, and the verified action+table shapes and
   integration patterns for `eosio.token` (incl. the `on_notify` transfer pattern) and
   `eosio.nft.ft` (Uniq factory→token model).
+- **`12-SMART_CONTRACT_SECURITY.md`** — the consolidated security ruleset: authorization
+  correctness (gate the party who bears the cost), the fake-deposit three-part guard, the
+  inline/notification execution-ordering hazard (you can't see an inline's state change
+  mid-action), and a named catalogue of the historical Antelope/EOSIO attack classes with each
+  one's status on Ultra. Grounded in the live system contracts + Spring protocol source.
 
 ## Prompt patterns that work
 
