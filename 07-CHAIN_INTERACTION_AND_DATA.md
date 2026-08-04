@@ -18,8 +18,8 @@ script, and read chain data for a dapp or backend.
 | `https://api.mainnet.ultra.io` | Ultra-operated dfuse; chain API **+ dfuse GraphQL at `/graphql`** |
 | `https://ultra.eosphere.io` | full API |
 | `https://ultra.eosrio.io` | full API |
-| `https://ultra.eosusa.io` | full API (+ Hyperion `/v2`) |
-| `https://api.ultra.eossweden.org` | full API (+ Hyperion `/v2`) |
+| `https://ultra.eosusa.io` | full API (+ Hyperion `/v2` — history, but rate-limits hard; §4) |
+| `https://api.ultra.eossweden.org` | full API (+ Hyperion `/v2` — **history primary**, indexed from genesis; §4) |
 | `https://api.ultra.cryptolions.io` | ⚠️ silently IP-bans (~5 req/15 s, drops TCP SYN) — spare only, never primary |
 
 **Testnet** — chain ID `7fc56be645bb76ab9d747b53089f132dcb7681db06f0852cfa03eaf6f7ac80e9`:
@@ -119,3 +119,27 @@ Table scope semantics: `get table <code> <scope> <table>` — scope is often an 
   removed (`Unknown Endpoint`) / silently rate-banning. Probe with `get_info` AND a real
   data call — a 200 on `/` proves nothing. Full probe recipes `[internal]`.
 - Local chain default: `http://127.0.0.1:8888`, per-boot chain ID (read via `get_info`).
+- **Read-after-write is not guaranteed on public endpoints.** An immediate read right after a
+  state-changing tx can land on a load-balanced node (or a lagging replica) that hasn't applied the
+  new block yet — quota/balance/table look unchanged even though the tx succeeded. Don't treat one
+  immediate post-tx read as authoritative: retry after a moment, ideally pinning the read to the
+  same host you pushed to (defeats the load-balancer routing you to a lagging node). For
+  *authoritative* confirmation, wait for irreversibility (~1 s, Savanna) and read last-irreversible
+  state; backends should index on IRREVERSIBLE (`08` §7).
+- **Public endpoints don't run the v1 history plugin.** `cleos get transaction <txid>` →
+  `Error 3110003: Missing History API Plugin` on the whole public rotation (it hits the removed
+  native v1 history API). For tx-by-id lookups use **Hyperion
+  `/v2/history/get_transaction?id=<txid>`** or **mainnet dfuse GraphQL**
+  (`api.mainnet.ultra.io/graphql`, §1.3) — never `cleos get transaction`. **Which mainnet BPs
+  actually serve Hyperion `/v2` (verified 2026-08-04):**
+  - ✅ **`api.ultra.eossweden.org` — PRIMARY.** Full history indexed from block 2 (genesis);
+    `get_transaction` / `get_actions` confirmed live and current to head.
+  - ✅ `ultra.eosusa.io` — full history too, but **rate-limits aggressively** (`429` on rapid
+    requests) — a fallback, not for tight loops.
+  - ❌ `ultra.eosphere.io` (its `/v2/*` redirects to a marketing site), `ultra.eosrio.io`
+    (`/v2` → 502), `api.ultra.cryptolions.io` (404 + IP-bans), `api.mainnet.ultra.io` (dfuse, no
+    Hyperion — use its `/graphql`). These serve chain RPC only.
+
+  Probe: `curl https://api.ultra.eossweden.org/v2/health` (`StateHistory: OK` + a `range`) proves
+  the history cluster is live. When no history node is reachable, confirm a tx's effect through
+  **state reads** (`get account`, `get table`, `get currency balance`) instead of a history lookup.

@@ -89,9 +89,15 @@ private key you can export, some **UOS**, and enough **RAM**.
      it directly (simplest). Caveat: an EBA's **`owner` permission is null**, so you can't
      reset/rotate its `active` key yourself.
    - **Ultra Pro Wallet** (recommended) — "Create an Ultra Pro Wallet" in the wallet UI
-     (`newnonebact`, ~2 USD in UOS). You hold **both `owner` and `active`**, so if the `active`
-     key ever leaks you can reset it with `owner`. That recovery control is the security reason
-     to prefer it for anything serious.
+     (`newnonebact`, ~2 USD in UOS). You hold **both `owner` and `active`** permissions, so if the
+     `active` key ever leaks you can reset it with `owner`. That recovery control is the security
+     reason to prefer it for anything serious. ⚠️ **But verify it's actually configured that way —
+     run `cleos get account <name>` and confirm `owner` and `active` resolve to *different* keys.**
+     A Pro Wallet gives you two separate *permissions*, but they can be backed by the **same key**;
+     if `owner` and `active` share a key, a leaked `active` key also unlocks `owner` and the
+     recovery guarantee is **silently void**. Rotate `owner` to a distinct (cold/offline) key
+     before treating the separation as real — necessary-but-not-sufficient: "Pro Wallet" ≠
+     "owner/active split".
 4. **Export the account's private key** from the extension (account → settings / manage keys →
    **Export Private Key** → a `5…` or `PVT_K1_…` WIF). ⚠️ **This is the bridge to `cleos`** — it's
    exactly the `<WIF>` in `cleos wallet import --private-key <WIF>` (§2). It controls the account
@@ -154,7 +160,9 @@ separately request a `client_id` from `developers@ultra.io`.
 
 For a contract you intend to run seriously, follow the pattern the audited suite defined:
 
-1. Verify the target account exists/is free: `cleos -u <rpc> get account <name>`.
+1. Verify the target account exists/is free: `cleos -u <rpc> get account <name>`. If you chose a
+   Pro Wallet **for** owner/active key separation, confirm here that `owner` and `active` are
+   backed by **different** keys — same-key silently defeats the recovery guarantee (§3).
 2. Build the **exact reviewed artifact**; record `sha256sum <name>.wasm` so
    deployed == audited.
 3. Create/fund the account: enough RAM for code + tables (the DeFi runbooks gift ~5 MiB

@@ -48,6 +48,7 @@ dev loop needs is in `00`'s matrix.
 | Avoid known traps | `10` (checklist; each doc has its own gotchas too) |
 | Integrate a core contract (`eosio.token`, Uniqs/`eosio.nft.ft`, msig, oracle) | `11` |
 | Secure a contract (auth, fake-deposit, inline-ordering, attack classes) | `03` → `12` |
+| Upgrade a live contract / add table fields / handle a breaking change + migrate data | `03` → `13` |
 | Know what's public vs private (repos, images, packages) | `00` |
 
 ## Contents
@@ -93,6 +94,13 @@ dev loop needs is in `00`'s matrix.
   inline/notification execution-ordering hazard (you can't see an inline's state change
   mid-action), and a named catalogue of the historical Antelope/EOSIO attack classes with each
   one's status on Ultra. Grounded in the live system contracts + Spring protocol source.
+- **`13-CONTRACT_UPGRADES_AND_BREAKING_CHANGES.md`** — how to evolve a **deployed** contract's
+  storage without corrupting on-chain data: the append-only table-layout rule (never
+  rename/retype/re-mean/remove a field), adding fields safely via **binary extension**, and —
+  when a change IS breaking — the versioned-table + data-migration playbook (`_v0`/`.a` →
+  `_v1`/`.b`), drawn from `eosio.nft.ft`'s real migrations: the `migration` singleton,
+  on-the-fly + batched-bulk migration, dual-write coexistence (`token.c`), the off-chain
+  driver, and the activate/gate/retire/rollback rollout sequence.
 
 ## Prompt patterns that work
 

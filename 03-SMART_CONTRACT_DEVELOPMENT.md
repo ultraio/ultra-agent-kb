@@ -48,7 +48,9 @@ set_target_properties(mycontract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CU
 Conventions (mirror `ultra.dex`): `[[eosio::contract("name")]]` / `[[eosio::action]]` /
 `[[eosio::table]]` / `[[eosio::on_notify(...)]]` attributes; **versioned tables** — C++
 struct `*_v0` + on-chain table name `*.a` (`config.a`, `pairs.a`) with explicit
-`EOSLIB_SERIALIZE`; Doxygen on public surface; each primitive its OWN small contract
+`EOSLIB_SERIALIZE` — this suffix scheme is what lets you later evolve the row layout
+without corrupting data (`13`: append-only rule, binary extensions, and the `.a`→`.b`
+migration playbook); Doxygen on public surface; each primitive its OWN small contract
 composing via inline actions, not a mega-contract. Action/table/account names ≤12 chars
 base32 — pick names that fit (`removeliquid`, not `removeliquidity`).
 
