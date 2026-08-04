@@ -52,8 +52,9 @@ action(perm, other_contract, "notify"_n, args).send();                // interac
   (`transaction_context.cpp:80`) — any assert *anywhere* in the tree reverts *everything*. This
   is your safety net: a **closing assertion** in a final inline action can validate the end
   state of the entire composed flow, and the whole tx rolls back if violated.
-- **Depth cap 4** (`config.hpp:86`, `default_max_inline_action_depth`) — deep inline chains hit
-  `max inline action depth per transaction reached`.
+- **Depth cap 4** (`config.hpp:87`, `default_max_inline_action_depth`; enforced
+  `apply_context.cpp:220`) — deep inline chains hit `max inline action depth per transaction
+  reached`.
 
 **Rules that follow:**
 
@@ -66,6 +67,39 @@ action(perm, other_contract, "notify"_n, args).send();                // interac
    flash-loan pattern (`03` §5) relies on exactly this: optimistic transfer out → borrower
    repays via their inline handler → a final `flashclose` asserts `repaid >= due` — the assert
    runs last and reverts the whole tx on shortfall.
+4. **You cannot read an inline's *result* either — not its state, and not its return value.**
+   `set_action_return_value` (`interface.hpp:700`) writes only to the transaction *trace*,
+   consumed off-chain (RPC response, dfuse, read-only queries) — there is **no
+   `get_action_return_value` intrinsic**, and the inline hasn't run yet regardless. So "if the
+   parent needs data from the inline, use its return value" **does not work on-chain.** When a
+   parent needs data owned by *another* contract, **read that contract's table directly** —
+   instantiate its `multi_index` scoped to the other contract's code account. This is exactly
+   what `eosio.token`'s static helpers do (`eosio.token.hpp:100-112`, `get_supply`/`get_balance`
+   build `stats{token_account, …}` / `accounts{token_account, …}`), and how `eosio.system` reads
+   token supply (`eosio.system.cpp:444`). There are no synchronous inter-contract calls.
+5. **A transient lock row is the clean reentrancy guard.** Because inline/notify handlers run
+   after your body on the depth-first tree, a hostile borrower/recipient can re-enter mid-
+   callback. Guard the resource under mutation with a lock row that exists only for the in-flight
+   operation — e.g. ultra.dex's `flashlocks` (`ultra.dex.cpp:166-167,297-298`): while the lock is
+   present, every swap/add/remove/re-flash on that pair reverts `ultra.dex: pair is flash-locked`.
+   Combined with effects-before-interactions, this makes the dual-notify path "reentrancy-safe by
+   construction" (`ultra.dex.cpp:206-209`).
+
+**Proven by tests (so you can trust this model, not just take my word):**
+
+- **Ordering** — the protocol's `action_ordinal_test` (`eosio/unittests/api_tests.cpp:2681`,
+  contract `test-contracts/test_api/test_action.cpp:264`) builds a mixed inline+notification tree
+  and asserts the exact execution order via recorded `action_ordinal` + `global_sequence`: every
+  inline/notified body runs only *after* its creator's body returns.
+- **Depth cap** — enforced at `apply_context.cpp:220` (constant `config.hpp:87 = 4`), tested by
+  `send_action_recurse` reverting `max inline action depth per transaction reached`
+  (`api_tests.cpp:971`).
+- **The "parent can't see its inline's effect" property** — proven *structurally*, not by a bare
+  read-before/read-after test (none exists). ultra.dex verifies flash-loan repayment in a
+  *separate later* inline (`flashclose`) precisely because the `flashloan` body cannot observe the
+  repayment; locked in by `flashloan_v0.spec.ts`, `flashexploit_v0.spec.ts`, and
+  `redteam_reentrancy_v0.spec.ts` (whose header states "flashclose is queued AFTER flashnotify, so
+  the lock is held for the whole borrower callback chain").
 
 > Note: `01` §8 and `03` §5.2 correctly call depth-first ordering "load-bearing" — that's the
 > *upside* (it's why flash loans work). This section is the *downside*: the same queuing means
@@ -117,6 +151,13 @@ require_auth( owner );
   Without this, "internal" bookkeeping actions become a public write API.
 - **Admin actions** behind a single `require_admin()` that falls back to `get_self()`; **no admin
   path may move user funds** — governance handoff instead (`08` §5).
+- **Validate every caller-supplied account before you trust it** — `check(is_account(x), …)`
+  before sending it funds or storing it as an authority (real: `ultra.dex.cpp:215,229,246,447`).
+  A typo'd or non-existent recipient otherwise strands funds or bricks the row.
+- **Prefer `find()` + an explicit `check(it != end, "domain message")` over a bare `.get()`.**
+  Reserve `.get(k, "msg")` for rows that must exist by invariant (`eosio.token.cpp:88,183`) — a
+  domain-specific revert beats an opaque table-miss abort, and the `find`-then-check idiom is the
+  house style across every DeFi contract.
 
 ---
 
@@ -146,7 +187,7 @@ void on_transfer(name from, name to, asset quantity, string memo) {
   original target (`apply_context.cpp:172`).
 - **`get_first_receiver() == <token contract>` defeats fake tokens.** Anyone can deploy a
   contract that emits a `transfer` notification for a look-alike `"UOS"`/`"EOS"` symbol. Without
-  this check you credit counterfeit tokens (the EOSBet 2018 class — see §4).
+  this check you credit counterfeit tokens (the EOSBet 2018 class — see §5).
 - **Wildcard bindings make the first-receiver check NON-NEGOTIABLE.** A static
   `on_notify("eosio.token::transfer")` binding means the runtime already guarantees the first
   receiver is `eosio.token` (this is why `ultra.discord.cpp:44-47` is safe with only from/to
@@ -160,15 +201,54 @@ void on_transfer(name from, name to, asset quantity, string memo) {
 - **Validate the asset explicitly** — symbol *and* precision. Don't rely on the incidental
   `asset`-comparison throw as your only guard (an anti-pattern seen in `ultra.discord`'s
   `deposit`). Assert `quantity.symbol == expected` yourself.
+- **Fixed-price handler with no withdraw/refund path → assert the exact *amount*, not just
+  positivity.** `check(quantity.amount > 0, …)` accepts a wrong-sized transfer; in a contract with
+  no `withdraw`/`refund` action that transfer is **stranded permanently** (zero recovery path). For
+  a fixed fee — postage, mint price, entry cost — assert the amount explicitly,
+  `check(quantity.amount == EXPECTED_AMOUNT, …)`, on top of the symbol+precision check above, and
+  let the revert bounce a mis-sized transfer straight back to the sender. (Note `quantity ==
+  EXPECTED_ASSET` also works but *throws* `"comparison of assets with different symbols is not
+  allowed"` on a symbol mismatch (`asset::operator==`, `asset.hpp:247`) rather than hitting your
+  message — assert the symbol yourself first for a clean error.) A positivity or range check is
+  only safe when a withdraw path exists to sweep the excess out.
 - **Reject unknown memos** (revert, don't silently ignore) and **reject fee-on-transfer / taxed
   tokens** at registration — they desync explicit accounting (`03` §5.6).
 - **Never validate funds by reading your own balance.** A concurrent in-flight deposit fakes it;
   this is a known CRITICAL drain class. Track dues in a transient table and assert
-  `repaid >= due` (`03` §5.9). See §4.4.
+  `repaid >= due` (`03` §5.9). See §5.4.
 
 ---
 
-## 4. Known attack classes on Antelope/EOSIO (with Ultra status)
+## 4. Signed messages & replay (bridges, RFQ, permit-style flows)
+
+If your contract accepts an **off-chain signature** as authorization — signed orders, bridge
+attestations, meta-transactions — `require_auth` does not apply; you verify the signature in code
+and you own the entire replay surface. Ultra's RFQ and bridge contracts show the full pattern:
+
+- **Domain-separate every signature to one chain + one contract.** RFQ binds
+  `sha256(tag || chain_id || self)` at init and rejects any order not carrying it
+  (`ultra.rfq.cpp:43`, checked `:249` `wrong domain separator`). Without it, a signature valid on
+  testnet — or on another deployment — replays on mainnet.
+- **One-shot init.** Guard bootstrap so config can't be re-seeded:
+  `check(cfg.domain_separator == checksum256{}, "ultra.rfq: already initialized")`
+  (`ultra.rfq.cpp:192`).
+- **Mark each signed message used.** A nonce / counter / cumulative-fill tombstone that the fill
+  or claim writes, so the same signature can't be replayed or over-filled (bridge:
+  `claimed_*` counter, `check(existing == end, "already claimed")`; RFQ: cumulative-fill
+  accounting rejects over-fill).
+- **Owner-controlled mass-invalidation.** An `epoch` the signer can bump (`bumpepoch`,
+  `ultra.rfq.cpp:315`) invalidates *all* their outstanding signed orders at once
+  (`check(order.epoch == cur_epoch, "ultra.rfq: stale epoch")`, `:256`) — the on-chain
+  equivalent of revoking a leaked key.
+- **Never feed untrusted bytes to an asserting crypto primitive.** `recover_key` aborts the whole
+  transaction on a malformed signature (a griefing vector). Pre-flight through the **non-throwing**
+  `k1_recover` and convert its error code into a clean revert (`ultra.rfq.cpp:105-106`,
+  `bad K1 signature`). Multi-sig/quorum verifiers must also **reject duplicate signers** and
+  enforce `threshold <= N`.
+
+---
+
+## 5. Known attack classes on Antelope/EOSIO (with Ultra status)
 
 Short catalogue of the historical hacks that shaped these rules. Each names the class, the
 incident, and how it maps to Ultra today.
@@ -209,9 +289,19 @@ incident, and how it maps to Ultra today.
    amounts. **→ `03` §5.7: `unsigned __int128` intermediates, guard every multiply, bound to
    int64, round toward the protocol.** Alive on Ultra; preventable with disciplined math.
 
+8. **Fee-on-transfer / taxed-token accounting desync** *(BLOCK-2584 class)* — a token that skims
+   on transfer delivers less than `quantity`, so a contract that credits `quantity` over-credits
+   and can be drained. **→ §3: reject taxed tokens at the funding boundary** (an `is_taxed` mirror
+   of `eosio.token`'s `tokenconfig`; `03` §5.6). Alive on Ultra.
+
+9. **Signature replay (cross-chain / cross-deploy / over-fill)** — a signed order or attestation
+   replayed on another deployment, re-submitted, or filled past its size. **→ §4: domain
+   separator + used-nonce/tombstone + owner epoch.** Alive on Ultra for any signed-message
+   contract.
+
 ---
 
-## 5. Security checklist (mirror in `10`)
+## 6. Security checklist (mirror in `10`)
 
 - [ ] **Auth names the right account** — `require_auth(<party who bears the cost>)`, read from
       state, never from an unauthenticated action param; never `get_self()` for user-initiated
@@ -223,18 +313,30 @@ incident, and how it maps to Ultra today.
       == <token contract>`; wildcard `*::` bindings *require* the first-receiver check (§3).
 - [ ] **Validate symbol + precision explicitly**; reject unknown memos; reject taxed/fee-on-
       transfer tokens at registration (§3).
+- [ ] **Fixed-fee handler with no withdraw/refund path → assert the exact amount**
+      (`quantity.amount == EXPECTED_AMOUNT`), not just `> 0` — a mis-sized transfer is otherwise
+      stranded forever (§3).
+- [ ] **A parent can't read an inline's result** — not its state, not its return value; read the
+      other contract's table directly instead (§1).
+- [ ] **Validate caller-supplied accounts** with `is_account` before paying or trusting them;
+      prefer `find()` + a domain `check` message over bare `.get()` (§2).
 - [ ] **Never read your own balance to validate funds** — explicit `due`/`repaid` accounting
-      (§3, §4.4).
+      (§3, §5.4).
 - [ ] **Effects before interactions** — mutate + invariant-check your state before any inline /
       `transfer_out` / `require_recipient`; never re-read a table expecting an inline's change
       (§1).
-- [ ] **Composed flows end with a closing assertion** (whole tx reverts on violation) (§1).
+- [ ] **Composed flows end with a closing assertion** (whole tx reverts on violation); a
+      **transient lock row** on the resource under mutation is the reentrancy guard (§1).
+- [ ] **User trades take `min_out`/`min_shares` + a `deadline`** (`check(now <= deadline,
+      "EXPIRED")`) — slippage + deadline on every swap / mint / liquidation.
+- [ ] **Signed-message contracts:** domain separator + used-nonce/tombstone + owner epoch +
+      non-throwing crypto pre-flight (§4).
 - [ ] **No unpredictable value from on-chain data** — commit-reveal / oracle for randomness
-      (§4.5).
-- [ ] **No deferred-tx assumptions** — none exist on Ultra; schedule off-chain (§4.6).
-- [ ] **u128 intermediates + overflow guards**, round toward the protocol (§4.7).
-- [ ] **No admin path can move user funds**; pause switch halts *new* risk only; plan governance
-      handoff (`08` §5).
+      (§5.5).
+- [ ] **No deferred-tx assumptions** — none exist on Ultra; schedule off-chain (§5.6).
+- [ ] **u128 intermediates + overflow guards**, round toward the protocol (§5.7).
+- [ ] **No admin path can move user funds**; pause switch halts *new* risk only (exits always
+      open); plan governance handoff (`08` §5).
 - [ ] **Every assert has a negative-path spec** that triggers it (`04`).
 
 Deep dives `[internal: ultraOS-doc]`: `ultra-defi/OVERALL_REVIEW_REPORT.md` (audit findings),

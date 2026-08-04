@@ -39,6 +39,14 @@ resolve to two different vite majors and hard-fail `vue-tsc`):
 }
 ```
 
+**`tsconfig.json` must list `"types": ["vite/client"]`** in `compilerOptions`. Without it
+`import.meta.env` (`VITE_NODE_URL`, `import.meta.env.DEV`, …) has no type and `vue-tsc --noEmit`
+fails with `Property 'env' does not exist on type 'ImportMeta'`. `vite build` alone never catches
+this (it doesn't type-check); only the `npm run build` = `vue-tsc --noEmit + vite build` step (§7)
+does — so it surfaces in CI/`build`, not `dev`. Add the line when you scaffold, not when CI breaks.
+(Equivalently, a `/// <reference types="vite/client" />` line in a `src/vite-env.d.ts` — what
+Vite's own `create-vite` scaffold generates; either satisfies the type, don't add both blindly.)
+
 No state library — one exported `reactive({...})` state object. React + wagmi/RainbowKit
 is the bridge-dapp variant if you need EVM too.
 
