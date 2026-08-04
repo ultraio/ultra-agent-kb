@@ -55,6 +55,31 @@ A leftover `nodeos` from a previous session blocks new test chains:
    work; this KB teaches the native `build.sh` + ultratest2 path used by the shipped
    DeFi suite because it is scriptable and agent-friendly.
 
+## 3b. Cross-platform / non-Linux hosts (read if you're not on the dev image)
+
+Everything in this KB assumes the **Linux dev image** — bash, POSIX tools (`grep`, `lsof`,
+`pkill`), `/home/adam/...` paths. The Ultra toolchain and the dapp stack also run on macOS and
+Windows, but two *host* traps recur when an agent or teammate works off-image. Both are generic OS
+facts, not Ultra-specific — call them out in any runbook a mixed-OS team shares:
+
+- **Shell snippets here are bash — they don't run verbatim in PowerShell/cmd.** A piped
+  verification command (a `grep`/`pkill` pipe, `$(…)` substitution) throws
+  `CommandNotFoundException` on native PowerShell. Translate the pipe to the host shell, or run the
+  command un-piped and read the full output. PowerShell equivalents: a `… | grep foo` pipe →
+  `… | Select-String foo`; `pkill -x nodeos` → `Stop-Process -Name nodeos -Force`; `lsof -i :5173`
+  → `Get-NetTCPConnection -LocalPort 5173`. When you author a shared runbook, show both shells (or
+  the un-piped form) for any snippet a Windows teammate will run.
+
+- **Stopping a launcher does not reliably stop the process it launched.** Killing `npm run
+  dev`/`preview` (or any wrapper) often leaves the underlying `node`/`vite` child alive and still
+  bound to its port — especially on Windows. The next `npm run …` then silently **auto-increments
+  to the next free port** (5173 → 5174) instead of reusing the original, which quietly breaks any
+  fixed-origin assumption downstream (wallet HTTPS origin, CORS allowlist, a hardcoded
+  `VITE_NODE_URL` consumer). Don't equate "task stopped" with "port freed" — verify the port is
+  actually free and kill the **real PID**, not the launcher:
+  - Windows: `netstat -ano | findstr :5173` → `Stop-Process -Id <pid> -Force`
+  - macOS/Linux: `lsof -i :5173` (or `ss -ltnp`) → `kill <pid>`
+
 ## 4. Dapp-side toolchain
 
 - Vite + Vue 3 + TypeScript (exemplars: `/home/adam/ultra.repos/ultra-dex-dapp`,

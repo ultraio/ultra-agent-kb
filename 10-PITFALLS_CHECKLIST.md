@@ -1,6 +1,6 @@
 # 10 — Pitfalls Checklist (condensed)
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-08-04
 The one-page "why is this failing" list. Each item links to the doc with the full story.
 
 ## Contract (`03`, `04`)
@@ -21,6 +21,23 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       (test helpers → `ultratests/CMakeLists.txt`).
 - [ ] Work in your OWN `eosio.contracts` worktree `[internal]` — DeFi exemplars are in
       `/home/adam/spring/eosio.contracts-defi` (NOT the main checkout).
+
+## Security (`12`) — before shipping anything that moves value
+
+- [ ] **Auth names the right account** — `require_auth(<party who bears the cost>)` read from
+      state, never a user-supplied param, never `get_self()` for user-initiated spends.
+- [ ] **Inline-only helpers self-guard** `check(get_sender()==<parent>)`; `on_notify` handlers
+      carry **no** `require_auth` (they have no authority — guard by binding + receiver checks).
+- [ ] **Inbound value = three-part guard:** `from!=self` → `to==self` → `get_first_receiver()==
+      <token>`. Wildcard `*::` `on_notify` bindings *require* the first-receiver check.
+- [ ] **Inline-ordering trap:** you can't see an inline's *result* mid-action — not its state
+      change (read-before == read-after) and **not its return value** (no on-chain reader). Need
+      data from another contract? Read its table directly. Effects before interactions; validate
+      composed flows with a closing assertion + a transient lock row (reentrancy guard).
+- [ ] **Signed-message contracts** (bridge/RFQ/permit): domain separator (chain+contract) +
+      used-nonce/tombstone + owner epoch mass-cancel + non-throwing `k1_recover` pre-flight.
+- [ ] **No on-chain RNG** (predictable — EOSPlay class); **no deferred-tx** patterns (don't exist
+      on Ultra); u128 intermediates + overflow guards; reject fee-on-transfer tokens at the boundary.
 
 ## Testing (`04`)
 
@@ -43,8 +60,12 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
 
 ## Wallet & dapp (`05`, `06`)
 
-- [ ] `window.ultra` injects on HTTPS + loopback only — feature-detect; serve QA builds
-      over HTTPS (`qa:https`; Vite dev-HTTPS breaks on Node 22).
+- [ ] `window.ultra` injects on **HTTPS only** in the shipped/CWS extension (the prod build
+      strips loopback) — including on `localhost`; serve QA builds over HTTPS (`qa:https`; Vite
+      dev-HTTPS breaks on Node 22). Only a self-built unpacked dev extension honors
+      `http://localhost` (`06` §2). Feature-detect.
+- [ ] `import.meta.env` needs `"types": ["vite/client"]` in tsconfig or `vue-tsc --noEmit` fails
+      (`Property 'env' does not exist on type 'ImportMeta'`) — `vite build` alone won't catch it (`05` §1).
 - [ ] wallet-sdk action shape `{contract, action, data, authorization}` (≠ raw shape).
 - [ ] Check `UltraResponse.status`, handle code 4001 (declined), check `unsignedAuth`.
 - [ ] `accountChanged` payload untrusted → re-query `getSelectedAccount()`;
@@ -82,8 +103,14 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       (`cleos wallet create/import/unlock`) or you get `Error 3120003: Locked wallet`.
 - [ ] No deploy key yet? Register at ultra.io → extension wallet → get UOS (Simplex or the
       bridge) → **export your account's private key** → `cleos wallet import` (`08` §3).
+- [ ] Public RPC has **no v1 history plugin** — `cleos get transaction` fails (`3110003`); for
+      tx-by-id use Hyperion `/v2` on **`api.ultra.eossweden.org`** (history primary; eosusa also,
+      but rate-limits) or mainnet dfuse GraphQL, else verify via state reads. Immediate post-tx
+      reads can be **stale** on load-balanced endpoints — re-query before concluding failure (`07` §4).
 - [ ] Mainnet deploy is **permissionless**: any account (EBA key exportable, or a Pro Wallet)
       + UOS + RAM. Record wasm sha256;
       `--add-code`; init in the same bootstrap; atomic governance handoff.
+- [ ] **"Pro Wallet" ≠ owner/active key split** — `get account` and confirm `owner`/`active`
+      resolve to **different** keys before relying on active-key recovery (`08` §3).
 - [ ] Pages deploys: tag-gated; `GITHUB_TOKEN` bot pushes fire no `push` event (silent
       deploy freeze); MiCA EU-block for crypto-asset dapps.

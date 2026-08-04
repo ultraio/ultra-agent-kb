@@ -1,6 +1,6 @@
 # 03 — Smart Contract Development
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-08-04
 **Read this to:** write, structure, and build an Ultra (Antelope) C++ contract the way the
 shipped production suite does. The best living exemplars are the five DeFi contracts in
 `/home/adam/spring/eosio.contracts-defi/contracts/` (`ultra.dex` is the reference).
@@ -48,7 +48,9 @@ set_target_properties(mycontract PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CU
 Conventions (mirror `ultra.dex`): `[[eosio::contract("name")]]` / `[[eosio::action]]` /
 `[[eosio::table]]` / `[[eosio::on_notify(...)]]` attributes; **versioned tables** — C++
 struct `*_v0` + on-chain table name `*.a` (`config.a`, `pairs.a`) with explicit
-`EOSLIB_SERIALIZE`; Doxygen on public surface; each primitive its OWN small contract
+`EOSLIB_SERIALIZE` — this suffix scheme is what lets you later evolve the row layout
+without corrupting data (`13`: append-only rule, binary extensions, and the `.a`→`.b`
+migration playbook); Doxygen on public surface; each primitive its OWN small contract
 composing via inline actions, not a mega-contract. Action/table/account names ≤12 chars
 base32 — pick names that fit (`removeliquid`, not `removeliquidity`).
 
@@ -168,6 +170,9 @@ Outflows are named actions that end in an **inline** `eosio.token::transfer` fro
    before the parent's next sibling. Flash-loan pattern depends on it: optimistic
    `transfer_out` → `flashnotify` (borrower's handler repays inline) → `flashclose`
    asserts repayment — all before the transaction commits.
+   ⚠️ **The flip side is a silent-bug trap:** inline actions are *queued*, so you **cannot
+   observe an inline's state change within the same action** — a table read before and after
+   `action.send()` returns the same value (`12` §1).
 3. **No sync calls:** compose contracts with inline actions + a **closing assertion** that
    validates the end state (whole tx reverts if violated).
 4. **Two action JSON shapes:** raw push/ultratest2 = `{account, name, authorization,
@@ -196,16 +201,15 @@ Outflows are named actions that end in an **inline** `eosio.token::transfer` fro
     for anything you must read in a test or dapp, **read the table directly** (`04` §4)
     (`getamtout` style).
 
-## 6. Security checklist (condensed from the shipped audits)
+## 6. Security checklist → see `12`
 
-- `require_auth` on every state-mutating action; admin actions behind a
-  `require_admin()` that falls back to `get_self()`.
-- Reject unknown memos; reject spoofed tokens (`get_first_receiver`).
-- Slippage/deadline params on user trades (`min_out`, `deadline`).
-- Pause switch that halts NEW risk only — never one that can trap or move funds.
-- No admin path that can move user funds; plan governance handoff (`08` §5).
-- Assert invariants at transaction close (K-invariant, solvency, conservation).
-- Test negative paths: every assert needs a spec that triggers it (`04`).
+**Full security ruleset lives in `12-SMART_CONTRACT_SECURITY.md`** — auth correctness (gate the
+party who bears the cost), the fake-deposit three-part guard, the inline-ordering hazard, and
+the named attack catalogue. Read `12` before shipping any contract that moves value. The two
+rules unique to trading contracts (not repeated in `12`):
+
+- **Slippage/deadline params on user trades** (`min_out`, `deadline`).
+- **Assert invariants at transaction close** (K-invariant, solvency, conservation).
 
 Deep dives `[internal: ultraOS-doc]`: `ultra-defi/AGENT_CONTEXT.md` §6 (gotchas), the five
 contract specs `ultra-defi/0{1..5}-*.md` (design + audit records), and
