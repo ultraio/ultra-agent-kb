@@ -106,22 +106,9 @@ internal reference dev machine the KB was validated on; public readers substitut
 repos, and the shipped wallet/dapp codebases, then **clean-room-validated** (2026-07-23) by
 an agent that built the complete Tip Jar stack (`09`) from this KB alone.
 
-**Clean-room re-validated on the public path (2026-07-24).** A fresh agent, given only this
-KB + `quay.io/ultra.io/3rdparty-devtools:latest` + public npm — with every host tool and every
-other path on the machine forbidden — designed and shipped a **new** contract (a `pollbooth`
-voting contract, deliberately not the Tip Jar: secondary index, numeric scope, `bool` column)
-and its dapp: `cdt-cpp` build clean first try, **ultratest2 spec suite 7/7**, dapp unit tests
-**16/16**, `vue-tsc + vite build` clean, and **5/5 live-chain integration** including a real
-signed action and a surfaced contract assert. **No private repo, no host binary, no
-workaround.** It reached doc `08`'s mainnet runbook and verified its commands against live
-testnet. The 13 documentation defects it found are fixed in this revision (the notable ones:
-`bool` fields deserialize as `1`/`0`; `09`'s build commands were internal-only; `08` omitted
-the `cleos wallet` prerequisite).
-
-**Public path proven (2026-07-23):** the docker-only bootstrap (`00` §3) was re-validated
-from **published npm** with **zero workarounds** — a fresh `quay.io/ultra.io/3rdparty-devtools`
-container, `npm i -g @ultraos/ultratest2` (`1.0.4`, which pulls `ultra-signer-lib 1.7.5`),
-Tip Jar spec suite **6/6 green**. The four workarounds the earlier validation needed were
-fixed and shipped that day (`@ultraos/ultra-signer-lib@1.7.5`, `@ultraos/ultratest2@1.0.4`).
-Both follow-ups then shipped too: the **refreshed
-Savanna image** (2026-07-24, CI-built) and **`@ultraos/wallet-sdk@0.3.2`**.
+**Clean-room validated on the public path.** A fresh agent, given only this KB +
+`quay.io/ultra.io/3rdparty-devtools:latest` + public npm — every host tool and every other
+path on the machine forbidden — designs and ships a complete contract + dapp end to end:
+`cdt-cpp` build, ultratest2 spec suite, dapp unit tests, `vue-tsc + vite build`, and
+live-chain integration (real signed action, surfaced contract assert), then follows doc `08`'s
+mainnet runbook against live testnet. No private repo, no host binary, no workaround.
