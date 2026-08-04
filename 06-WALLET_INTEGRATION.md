@@ -30,12 +30,21 @@ Injected as a frozen, tamper-proof Proxy by the extension's page-world script
 (`web-app/apps/browser-extension-wallet/src/extension/inject.ts:61-81`), via manifest
 `content_scripts` with `"world": "MAIN"` (`src/manifest.json:21-32`).
 
-**Injection scope (critical local-dev fact):** `content_scripts.matches` =
-`https://*/*`, `http://localhost/*`, `http://127.0.0.1/*` — i.e. **HTTPS everywhere, plain
-HTTP only on loopback**. A dapp served over `http://` on any non-loopback host gets **no
-`window.ultra` at all**. Some shipped extension builds (≥2.2.1 era) dropped plain-HTTP
-localhost too — if `window.ultra` is missing on `http://localhost`, serve the dapp over
-HTTPS (see §7.2) and move on. Always feature-detect: `'ultra' in window`.
+**Injection scope (critical local-dev fact):** the committed *source* manifest
+(`src/manifest.json:11-31`) matches `https://*/*` **plus** `http://localhost/*` and
+`http://127.0.0.1/*` (any port) — but **every production / QA build strips the loopback hosts**
+via `apps/browser-extension-wallet/scripts/strip-loopback-hosts.mjs` (run by the
+`build:browser-extension-wallet-{prod,qa}` npm scripts, mandatory for CWS). So the manifest that
+actually ships to the Chrome Web Store has `content_scripts.matches = ["https://*/*"]` **only**.
+**Net effect: the installed extension a tester downloads injects `window.ultra` on HTTPS only —
+including on `localhost`.** Plain `http://localhost` gets no provider. The loopback matches
+survive only in a **self-built, load-unpacked** extension: the strip is a separate step the
+`build:browser-extension-wallet-{prod,qa}` npm scripts append *after* the nx build, so the §7.1
+build command (`npx nx build …`, even `-c=production`) keeps loopback, while every CWS/QA artifact
+built through those npm scripts is HTTPS-only. A dapp served over `http://` on any non-loopback
+host never gets a provider on any build.
+**Practical rule: to QA a local dapp against the real installed extension, serve it over HTTPS
+(§7.2) — this is the norm, not an edge case.** Always feature-detect: `'ultra' in window`.
 
 Methods: `connect, disconnect, signMessage, signTransaction, getChainId, purchaseItem,
 getAccounts, getSelectedAccount, getAvailableAuthorizations, getNetwork, getNetworks,

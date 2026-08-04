@@ -120,7 +120,9 @@ There are **59 actions** — enumerate the live ABI (§1) rather than trusting a
 **Reading a user's Uniqs:** `token.b` scoped per owner; but for anything user-facing prefer the
 **indexed APIs** in `07` (dfuse GraphQL / the Ultra API) — walking `token.b` on-chain for a
 whole wallet is slow and paginated. Note tables carry version suffixes (`token.a`/`token.b`,
-`factory.a`) — **always confirm which one is live via the ABI**, they migrate.
+`factory.a`) — **always confirm which one is live via the ABI**, they migrate. `eosio.nft.ft`
+is in fact the canonical example of how Ultra handles a breaking table change and migrates the
+data between versions — see `13` if you're evolving your OWN contract's tables.
 
 ⚠️ **Factory creation is Ultra-gated** (`01` §5) — you generally cannot create factories on
 mainnet without Ultra's involvement. Design your dapp to *consume* existing Uniqs unless you
