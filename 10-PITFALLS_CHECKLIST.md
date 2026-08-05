@@ -114,3 +114,9 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       resolve to **different** keys before relying on active-key recovery (`08` §3).
 - [ ] Pages deploys: tag-gated; `GITHUB_TOKEN` bot pushes fire no `push` event (silent
       deploy freeze); MiCA EU-block for crypto-asset dapps.
+- [ ] `cleos set contract account contract-dir [wasm-file] [abi-file]` — `contract-dir` must
+      be a real **directory**; passing the `.wasm` file's own path there (instead of its
+      folder) silently misassigns the arguments and fails with a misleading
+      `Error 3160010: no abi file found <mangled-path>` that doesn't name the real cause.
+      Point `contract-dir` at the build folder; give `wasm-file`/`abi-file` as filenames
+      *relative to it* (or omit them if they match the folder's basename).
