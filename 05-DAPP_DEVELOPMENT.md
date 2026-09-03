@@ -1,6 +1,6 @@
 # 05 — Dapp Development
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-09-03
 **Read this to:** build the web frontend for an Ultra contract the way the shipped dapps do.
 Exemplars: `/home/adam/ultra.repos/ultra-dex-dapp` (the reference), `ultra-lend-dapp`,
 `ultra-farm-dapp` (Vue); `ultra-bridge-dapp` (React, production at bridge.ultra.io).
@@ -16,7 +16,7 @@ exactly three runtime packages:
 ```json
 "dependencies": {
   "vue": "^3.5.0",
-  "@ultraos/wallet-sdk": "^0.3.2",     // signing (via the extension; no keys in the dapp)
+  "@ultraos/wallet-sdk": "^0.3.2",     // extension + Web Wallet signing; no keys in the dapp
   "@wharfkit/antelope": "^1.0.13"      // read-only chain client
 }
 ```
@@ -54,20 +54,21 @@ is the bridge-dapp variant if you need EVM too.
 
 ```
 src/
-  ultraWallet.ts    # thin wallet-sdk wrapper (singleton + isAvailable guard) — see 06 §3.1
-  connection.ts     # reactive state + read APIClient + signAndPush + event sync + network switch
+  ultraWallet.ts    # provider-aware SDK wrapper (extension singleton + Web instance per env)
+  connection.ts     # reactive state + provider-gated lifecycle + read client + signAndPush
   config.ts         # contract names, NETWORKS[] (chainId+nodeUrl), tokens, matchNetwork()
   <domain>Client.ts # table reads + action builders for YOUR contract
   <domain>Math.ts   # math mirror of the contract (see §5)
   App.vue           # connect button, network selector, account badge
   components/*.vue  # feature panels
-tests/e2e/          # Playwright + mockWallet.ts + chain.ts (Node-side signer/reads)
+tests/e2e/          # extension mock + live chain; add Web popup/provider tests per 06 §9
 scripts/qa-https-server.mjs   # HTTPS server for real-extension manual QA
 src/__tests__/      # vitest (math mirror)
 ```
 
-Key split: `ultraWallet.ts` is a pure SDK passthrough; `connection.ts` owns app state and
-sync; `<domain>Client.ts` translates UI intents into actions/reads. Config defaults:
+Key split: `ultraWallet.ts` selects and records the SDK provider; `connection.ts` owns app
+state and branches between extension lifecycle and Web popup lifecycle; `<domain>Client.ts`
+translates UI intents into actions/reads. Config defaults:
 `VITE_NODE_URL` env overrides the read endpoint (`http://127.0.0.1:8888` for local chain).
 
 ## 3. Talking to YOUR contract
@@ -75,7 +76,7 @@ sync; `<domain>Client.ts` translates UI intents into actions/reads. Config defau
 Two directions, two mechanisms:
 
 - **Writes** = wallet-signed transactions. Build plain-JSON actions (wallet-sdk shape:
-  `{contract, action, data, authorization}`) and hand them to `signAndPush` (`06` §3.3).
+  `{contract, action, data, authorization}`) and hand them to `signAndPush` (`06` §5).
   For memo-dispatch contracts the "action" is an `eosio.token::transfer` **to** the
   contract with the routing memo — e.g. the DEX swap
   (`ultra-dex-dapp/src/dexClient.ts:60-139`):
@@ -100,21 +101,24 @@ Two directions, two mechanisms:
   const info = await client.v1.chain.get_info();      // chain_id for localhost matching
   ```
 
-  Rebuild the client whenever the wallet's network changes (`connection.ts:41-49`).
+  For extension, rebuild when its network changes. For Web Wallet, bind reads to the environment
+  used to construct the Web SDK and rebuild only after an explicit environment change/reconnect.
 
 Asset strings: always the exact on-chain precision (`"1.00000000 UOS"`). Parse balances by
 splitting on the space.
 
 ## 4. State & sync model
 
-One reactive state: `{ walletAvailable, connected, account, permission, chainId, nodeUrl,
-balances, syncing, busy }`. Rules (from the shipped `connection.ts`):
+One reactive state: `{ extensionAvailable, provider, connected, account, permission, chainId,
+nodeUrl, balances, syncing, busy }`. Rules (from the shipped `connection.ts`):
 
-- The **wallet is the source of truth** for account + network; the dapp never has an
-  account selector of its own.
-- On mount: `initWalletSync()` (subscribe events) then `tryReconnect()`
-  (`connect({onlyIfTrusted:true})`).
-- On `networkChanged`: adopt the wallet's network, rebuild the read client, refresh reads.
+- Retain `provider: 'extension'|'web'`; a missing extension must not disable Web Wallet.
+- Extension: wallet is the source of account/network truth; subscribe after connect and silently
+  reconnect only this provider with `onlyIfTrusted:true`.
+- Web: account comes from `connect()`, network comes from construction environment + `getChainId()`;
+  never call extension-only query/event/switch methods and never open it silently on mount.
+- On extension `networkChanged`, adopt the wallet network and rebuild the read client. On Web
+  environment change, disconnect, rebuild for the chosen environment, and require reconnect.
 - `syncing` flag guards the switchNetwork↔event loop; `busy` serializes tx submission.
 
 ## 5. The math-mirror pattern (correctness-critical)
@@ -153,7 +157,10 @@ contract uses u128 saturation, either mirror it or document the divergence.
     the real wallet.
   - Assertions read chain tables in Node and compare the UI against on-chain truth via the
     math mirror — exact, not approximate.
-- **Real-extension E2E** (heavier; `06` §8): persistent context + `--load-extension`.
+- **Provider tests:** no injected extension must construct Web SDK; injected extension must select
+  Extension SDK; Web tests assert no extension-only API is called (`06` §9).
+- **Real-wallet smoke:** headed extension flow and deployed Web Wallet popup flow are both required
+  before claiming dual-provider production support (`06` §9).
 
 ## 7. Build & run
 
@@ -164,7 +171,7 @@ npx playwright install chromium   # once per fresh dapp/Playwright version — b
 npm run dev          # Vite; VITE_NODE_URL=http://127.0.0.1:8888 for a local chain
 npm test             # vitest math mirror
 npm run build        # vue-tsc --noEmit + vite build
-npm run qa:https     # prod build over HTTPS for real-extension QA (06 §7.2)
+npm run qa:https     # prod build over HTTPS for real-extension QA (06 §6/§8)
 ```
 
 ## 8. Hosting (production)

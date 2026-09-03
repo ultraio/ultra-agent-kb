@@ -1,251 +1,357 @@
-# 06 — Wallet Integration (`window.ultra` + `@ultraos/wallet-sdk`)
+# 06 — Wallet Integration (`@ultraos/wallet-sdk`)
 
-**Last Updated:** 2026-07-24
-**Read this to:** connect a dapp to the Ultra Wallet (browser extension or web wallet), sign
-and broadcast transactions, handle events, and survive the known traps. The worked example
-(`09`) applies everything here. Wallet *internals* (vault, signing lib, EBA keys) →
-`[internal: ultraOS-doc web-browser-extension/WALLET_SYSTEM_AGENT_CONTEXT.md]`.
-Note: `web-app/...` file:line citations below are into the private extension monorepo —
-the npm `@ultraos/wallet-sdk` package (public) + this doc carry everything a dapp needs.
+**Last Updated:** 2026-09-03
+**Read this to:** connect and transact through both the Ultra Wallet browser extension and
+the hosted Web Wallet without treating their different capability models as interchangeable.
+The public npm package plus this document are sufficient; a dapp never needs wallet source,
+private keys, or raw `window.ultra` calls.
 
----
+## Contents
 
-## 1. The ecosystem in one screen
+1. Non-negotiable model
+2. Install and choose a provider
+3. Canonical dual-provider wrapper
+4. Connect and derive state
+5. Sign and broadcast
+6. Extension lifecycle
+7. Web Wallet lifecycle
+8. Chain reads and local development
+9. Testing and acceptance gate
+10. Failure handling and traps
 
-- **Ultra Wallet browser extension** (Chrome MV3; source `web-app/apps/browser-extension-wallet`)
-  injects a `window.ultra` provider into pages. It holds keys, serializes, signs, and
-  broadcasts — the dapp never touches ABIs or private keys.
-- **Web wallet** (`https://web-wallet.ultra.io`) — popup-based fallback when no extension is
-  installed. No events support.
-- **`@ultraos/wallet-sdk`** (npm) — the dapp-facing SDK that wraps both providers behind one
-  API. **This is what your dapp should use** — not raw `window.ultra`.
-- Published SDK version: **0.3.2** — **pin `^0.3.2` in new dapps** (0.3.1 and earlier can't be
-  imported by plain Node / vitest / SSR; see `05` §1). Shipped dapps still pin `^0.3.1`/`^0.3.0`. The web-app source tree is ahead (0.5.0) — methods like `getNetworks`,
-  `getAvailableAuthorizations`, attestation exist at HEAD but **verify against the installed
-  version before using them**.
+## 1. Non-negotiable model
 
-## 2. `window.ultra` — the provider surface
+- Use `@ultraos/wallet-sdk`, never raw `window.ultra`, for application calls.
+- **Extension and Web Wallet share connect/sign, not lifecycle APIs.** Record which provider
+  you selected and branch on it.
+- The extension is injected as `window.ultra`; it owns its selected account/network and emits
+  events. It supports custom/localhost networks.
+- Web Wallet is a popup transport bound to one hosted environment when its SDK instance is
+  constructed. It has no events, no live account/network query, and no network switching.
+- Absence of `window.ultra` means “extension unavailable,” **not** “wallet unavailable.” The
+  dapp must still offer Web Wallet on a deployed hosted environment.
+- Reads bypass the wallet. Use `@wharfkit/antelope` with the endpoint associated with the
+  resolved extension network or selected Web Wallet environment.
 
-Injected as a frozen, tamper-proof Proxy by the extension's page-world script
-(`web-app/apps/browser-extension-wallet/src/extension/inject.ts:61-81`), via manifest
-`content_scripts` with `"world": "MAIN"` (`src/manifest.json:21-32`).
+Published SDK version: **0.3.2**. New dapps must pin `^0.3.2` (0.3.1 and earlier break plain
+Node/Vitest/SSR ESM imports). Verify `npm view @ultraos/wallet-sdk version` before adopting APIs
+not documented here; the source monorepo can be ahead of npm.
 
-**Injection scope (critical local-dev fact):** the committed *source* manifest
-(`src/manifest.json:11-31`) matches `https://*/*` **plus** `http://localhost/*` and
-`http://127.0.0.1/*` (any port) — but **every production / QA build strips the loopback hosts**
-via `apps/browser-extension-wallet/scripts/strip-loopback-hosts.mjs` (run by the
-`build:browser-extension-wallet-{prod,qa}` npm scripts, mandatory for CWS). So the manifest that
-actually ships to the Chrome Web Store has `content_scripts.matches = ["https://*/*"]` **only**.
-**Net effect: the installed extension a tester downloads injects `window.ultra` on HTTPS only —
-including on `localhost`.** Plain `http://localhost` gets no provider. The loopback matches
-survive only in a **self-built, load-unpacked** extension: the strip is a separate step the
-`build:browser-extension-wallet-{prod,qa}` npm scripts append *after* the nx build, so the §7.1
-build command (`npx nx build …`, even `-c=production`) keeps loopback, while every CWS/QA artifact
-built through those npm scripts is HTTPS-only. A dapp served over `http://` on any non-loopback
-host never gets a provider on any build.
-**Practical rule: to QA a local dapp against the real installed extension, serve it over HTTPS
-(§7.2) — this is the norm, not an edge case.** Always feature-detect: `'ultra' in window`.
+### Capability matrix for published SDK 0.3.2 + current wallets
 
-Methods: `connect, disconnect, signMessage, signTransaction, getChainId, purchaseItem,
-getAccounts, getSelectedAccount, getAvailableAuthorizations, getNetwork, getNetworks,
-switchNetwork, addNetwork` + EventEmitter (`on/off/once/...`). (`addNetwork` is a zombie —
-its background route was removed; it returns `METHOD_NOT_FOUND` cleanly.)
+| Capability | Extension | Web Wallet |
+| --- | --- | --- |
+| `connect`, `disconnect` | Yes | Yes, popup |
+| `signTransaction`, `signMessage` | Yes | Yes, popup |
+| `getChainId` | Yes | Yes |
+| Account identity | Connect result + live queries | **Connect result only** |
+| `getAccounts`, `getSelectedAccount`, `getAvailableAuthorizations` | Yes | Do not call; current Web Wallet server does not expose them |
+| `getNetwork`, `getNetworks` | Yes | Throws “Not supported in web provider” |
+| `switchNetwork`, `addNetwork` | `switchNetwork` yes; `addNetwork` route is unavailable | Throws “Not supported in web provider” |
+| `accountChanged`, `networkChanged`, `disconnect` events | Yes | No-op / unsupported |
+| Localhost/custom networks | Yes | No |
+| Silent `onlyIfTrusted` restore on page load | Yes | Do not use; it would open a popup |
+| `purchaseItem` | Do not depend on it without a current product-specific validation | Do not use; current UI route is incomplete |
 
-## 3. `@ultraos/wallet-sdk` — how to use it
+Current production availability (verified 2026-09-03): `https://web-wallet.ultra.io` serves
+Mainnet. SDK 0.3.2 contains `https://web-wallet.staging.ultra.io` for `testnet`, but that hostname
+is not currently deployed in public DNS. **Do not show Web Wallet for Testnet until that endpoint
+is deployed and a connect smoke test passes.** This limitation does not affect Testnet through
+the extension.
+
+## 2. Install and choose a provider
 
 ```bash
-npm i @ultraos/wallet-sdk        # plus @wharfkit/antelope for chain reads (see 05)
+npm install @ultraos/wallet-sdk@^0.3.2 @wharfkit/antelope
 ```
+
+Two product designs are valid:
+
+1. **Automatic fallback (Ultra Bridge pattern):** use extension when injected; otherwise use
+   Web Wallet for the selected deployed environment.
+2. **Explicit choice (Ultra Tool Kit pattern):** show separate “Ultra Wallet (Extension)” and
+   “Ultra Wallet (Web)” buttons. Disable only the extension button when injection is absent;
+   disable only Web Wallet on unsupported/undeployed environments.
+
+Do not rely on SDK auto-detection without also retaining the selected provider kind. Your state
+layer needs that kind to avoid calling extension-only methods on Web Wallet.
+
+```ts
+export type WalletKind = 'extension' | 'web';
+export type WalletEnvironment = 'mainnet' | 'testnet';
+
+export function extensionAvailable(): boolean {
+  return typeof window !== 'undefined' && !!(window as any).ultra;
+}
+
+export function chooseWallet(): WalletKind {
+  return extensionAvailable() ? 'extension' : 'web';
+}
+```
+
+## 3. Canonical dual-provider wrapper
+
+This is the minimum safe architecture. It follows the shipped Bridge/Tool Kit split: one
+extension singleton, one Web Wallet instance per environment, and an explicit active kind.
 
 ```ts
 import { UltraWalletSDK } from '@ultraos/wallet-sdk';
+import type {
+  BlockchainTransaction, ConnectParams, ConnectResult,
+  SignTransactionResult, UltraResponse, WalletEventType,
+} from '@ultraos/wallet-sdk';
 
-// Force the extension provider (the shipped dapps do this):
-const sdk = new UltraWalletSDK({ provider: 'extension' });
-// OR auto-detect (extension if `'ultra' in window`, else web-wallet popup),
-// with a connect-time chain check that THROWS on mismatch:
-const sdk2 = new UltraWalletSDK({ environment: 'testnet' });
-```
+type WalletKind = 'extension' | 'web';
+type WalletEnvironment = 'mainnet' | 'testnet';
+const deployedWebWalletEnvironments = new Set<WalletEnvironment>(['mainnet']);
 
-Every call resolves to a response envelope — **it does not throw for user-level failures**:
+let extensionSdk: UltraWalletSDK | null = null;
+const webSdks = new Map<WalletEnvironment, UltraWalletSDK>();
+let active: { kind: WalletKind; sdk: UltraWalletSDK; environment: WalletEnvironment } | null = null;
 
-```ts
-interface UltraResponse<T> { status: 'success'|'fail'|'error'; data: T; message?: string; code?: number }
-// codes: 4001 = user rejected; 4300 = web-wallet handshake timeout;
-//        4301 = wallet popup blocked; -32604 unknown
-```
+function extensionAvailable() {
+  return typeof window !== 'undefined' && !!(window as any).ultra;
+}
 
-Handle `4001` (user clicked Decline) everywhere you sign.
-(Types: `web-app/libs/wallet-sdk/src/lib/interfaces/`.)
-
-### 3.1 The canonical thin wrapper (copy this pattern)
-
-`ultra-dex-dapp/src/ultraWallet.ts` — singleton SDK + availability guard + passthrough:
-
-```ts
-let sdk: UltraWalletSDK | null = null;
-export function isAvailable() { return typeof window !== 'undefined' && !!(window as any).ultra; }
-function getSDK() {
-  if (!isAvailable()) throw new Error('Ultra Wallet extension is not installed');
-  if (!sdk) sdk = new UltraWalletSDK({ provider: 'extension' });
+function sdkFor(kind: WalletKind, environment: WalletEnvironment): UltraWalletSDK {
+  if (kind === 'extension') {
+    if (!extensionAvailable()) throw new Error('Ultra Wallet extension is not installed');
+    return extensionSdk ??= new UltraWalletSDK({ provider: 'extension' });
+  }
+  if (!deployedWebWalletEnvironments.has(environment)) {
+    throw new Error(`Ultra Web Wallet is not deployed for ${environment}`);
+  }
+  let sdk = webSdks.get(environment);
+  if (!sdk) {
+    sdk = new UltraWalletSDK({ provider: 'web', environment });
+    webSdks.set(environment, sdk);
+  }
   return sdk;
 }
-export const connect = (p = {}) => getSDK().connect(p);
-export const signTransaction = (a: BlockchainTransaction[]) => getSDK().signTransaction(a);
-export const dispose = () => { if (sdk) { sdk.dispose(); sdk = null; } };  // frees heartbeat+listener
-// … disconnect/getNetwork/switchNetwork/getSelectedAccount/on/off passthroughs
+
+export async function connect(
+  environment: WalletEnvironment,
+  params: ConnectParams = {},
+  kind: WalletKind = extensionAvailable() ? 'extension' : 'web',
+): Promise<UltraResponse<ConnectResult>> {
+  const sdk = sdkFor(kind, environment);
+  active = { kind, sdk, environment };
+  return sdk.connect(params);
+}
+
+function current() {
+  if (!active) throw new Error('connect a wallet first');
+  return active;
+}
+
+function currentExtension() {
+  const wallet = current();
+  if (wallet.kind !== 'extension') throw new Error('method requires the Extension provider');
+  return wallet.sdk;
+}
+
+export const providerKind = () => active?.kind ?? null;
+export const getChainId = () => current().sdk.getChainId();
+export const signTransaction = (actions: BlockchainTransaction[]): Promise<UltraResponse<SignTransactionResult>> =>
+  current().sdk.signTransaction(actions);
+
+// These fail locally before the SDK when the active provider is Web Wallet.
+export const getSelectedAccount = () => currentExtension().getSelectedAccount();
+export const getNetwork = () => currentExtension().getNetwork();
+export const switchNetwork = (chainId: string) => currentExtension().switchNetwork(chainId);
+export const on = (event: WalletEventType, cb: (data: any) => void) => {
+  currentExtension().on(event, cb);
+};
+export const off = (event: WalletEventType, cb: (data: any) => void) => {
+  currentExtension().off(event, cb);
+};
+
+export async function disconnect() {
+  if (!active) return;
+  try { await active.sdk.disconnect(); } finally { active = null; }
+}
+
+export function dispose() {
+  extensionSdk?.dispose();
+  for (const sdk of webSdks.values()) sdk.dispose();
+  extensionSdk = null;
+  webSdks.clear();
+  active = null;
+}
 ```
 
-### 3.2 Connect + silent session restore
+If the user changes Web Wallet environment, disconnect and reconnect using the instance for the
+new environment. Never call `switchNetwork` on Web Wallet.
+
+## 4. Connect and derive state
+
+SDK calls have **two failure channels**. They can resolve with a non-success `UltraResponse`, or
+reject/throw (popup blocked/closed, handshake timeout, concurrent request, environment mismatch,
+transport failure). Always handle both:
 
 ```ts
-// explicit connect (popup):
-const res = await wallet.connect({});
-// on app load — silent restore, no popup if origin already trusted:
-try { const r = await wallet.connect({ onlyIfTrusted: true });
-      if (r.status === 'success') await refreshFromWallet(); } catch { /* not trusted — fine */ }
+try {
+  const response = await wallet.connect(environment, {}, kind);
+  if (response.status !== 'success' || !response.data) {
+    throw new Error(response.message || 'wallet connection rejected');
+  }
+  const data = response.data;
+  // derive identity/network below
+} catch (error) {
+  // show a user-safe popup/provider/network error; do not expose raw sensitive data
+}
 ```
 
-After connect, read the truth from the wallet — the dapp never picks the account:
-`getSelectedAccount()` → `{ accountName, permissions:[{name, publicKeys[]}] }`, and
-`getNetwork()` → `{ name, chainId, nodeUrl }`; rebuild your read-only RPC client on the
-wallet's `nodeUrl` (`ultra-dex-dapp/src/connection.ts:78-109`).
+Derive identity from the connect response for **both** providers. Prefer the modern extension
+shape, then fall back to the legacy fields returned by Web Wallet/current older wallets:
 
-`ConnectResult`: prefer `selectedAccount` + `network.chainId`; `blockchainid`/`publicKey`
-are deprecated legacy fields (fall back only for old wallets).
+```ts
+function identityFromConnect(data: ConnectResult) {
+  if (data.selectedAccount?.accountName) {
+    const permissions = data.selectedAccount.permissions ?? [];
+    const permission = permissions.find((p) => p.name === 'active')?.name
+      ?? permissions[0]?.name ?? 'active';
+    return { account: data.selectedAccount.accountName, permission };
+  }
+  return { account: String(data.blockchainid || '').split('@')[0], permission: 'active' };
+}
+```
 
-### 3.3 Sign + broadcast
+Then branch:
 
-**The wallet-sdk action shape is NOT the raw EOSIO shape.** SDK takes
-`{contract, action, data, authorization}`; raw RPC / ultratest2 take
-`{account, name, authorization, data}`. Mixing them up is a classic failure.
+- **Extension:** refresh with `getSelectedAccount()` and `getNetwork()`; retain connect/last-known
+  state if a transient query fails. The wallet-selected account/network is authoritative.
+- **Web Wallet:** do not call those methods. Keep identity from `connect()`, obtain chain ID with
+  `getChainId()`, and choose the read RPC from the environment used to construct the SDK.
+
+Only attempt `connect({onlyIfTrusted:true})` automatically when the extension is present. Web
+Wallet is user-gesture popup UI; never open it during page load or silent restore.
+
+## 5. Sign and broadcast
+
+The SDK action shape is `{contract, action, data, authorization}`, not raw Antelope RPC’s
+`{account, name, authorization, data}`:
 
 ```ts
 const actions = [{
-  contract: 'eosio.token', action: 'transfer',
-  authorization: [{ actor: account, permission }],       // StructuredAuthorization[]
-  data: { from: account, to: 'ultra.dex',
-          quantity: '1.00000000 UOS',                    // asset string, exact precision
-          memo: `swap,${pairId},${minOut},${account}` },
+  contract: 'eosio.token',
+  action: 'transfer',
+  authorization: [{ actor: account, permission }],
+  data: {
+    from: account,
+    to: 'yourcontract',
+    quantity: '1.00000000 UOS',
+    memo: 'your routing memo',
+  },
 }];
-const res = await wallet.signTransaction(actions);       // signs AND broadcasts by default
-if (res.status !== 'success') throw new Error(res.message || 'rejected');   // 4001 = declined
-if (res.data.unsignedAuth?.length) throw new Error('not fully signed');     // partial-sign gap
-const txId = res.data.transactionHash;
+
+try {
+  const response = await wallet.signTransaction(actions);
+  if (response.status !== 'success') throw new Error(response.message || 'transaction rejected');
+  if (response.data.unsignedAuth?.length) throw new Error('transaction was not fully signed');
+  const transactionId = response.data.transactionHash;
+} catch (error) {
+  // includes declined request, popup closed/blocked, timeout, and transport failures
+}
 ```
 
-- Multi-action atomic tx = pass an array (e.g. the two add-liquidity transfer legs).
-- `signTransaction(tx, { signOnly: true })` returns signatures without broadcasting.
-- `signMessage(msg)` requires the message be prefixed `0x:`, `UOSx:`, or `message:`.
-- The extension fetches ABIs + serializes itself — you pass plain JSON `data`.
+`signTransaction` signs and broadcasts by default. Pass `{signOnly:true}` only when another
+system will broadcast. Multi-action transactions are one array. Use exact asset precision.
+`signMessage` accepts messages beginning with `0x`, `UOSx`, or `message:`.
 
-### 3.4 Events
+Never put private keys, wallet passwords, bearer tokens, seed phrases, or funded test fixtures in
+the dapp, KB, source control, screenshots, logs, or examples. Real-wallet test credentials must
+come from an approved secret store and tests must skip cleanly when they are absent.
 
-`WalletEventType = 'accountChanged' | 'networkChanged' | 'disconnect'` — there is **no
-`chainChanged`**. Subscribe once on mount, tear down + `dispose()` on unmount
-(`ultra-dex-dapp/src/connection.ts:158-180`):
+## 6. Extension lifecycle
 
-- `accountChanged` — **don't trust the payload**; re-query `getSelectedAccount()`.
-  `data.selected === null` means "no account on this chain" — do NOT wipe your state.
-- `networkChanged` → re-read `getNetwork()`, adopt it, rebuild the read client. Guard with a
-  `syncing` flag to prevent `switchNetwork ↔ networkChanged` ping-pong.
-- `disconnect` → authoritative logout: clear local state, and **never call `disconnect()`
-  back** (echo loop).
-- Since SDK 0.3.0 the SDK manages background listener registration itself, with a 2 s
-  heartbeat that survives extension service-worker restarts. Don't hand-roll
-  `addExtensionListener`. Also: `on()` before `connect()` is silently dropped for untrusted
-  origins — the SDK re-registers after connect for you.
+Subscribe after a successful connect and unsubscribe/dispose on teardown:
 
-## 4. Networks
+- `accountChanged`: do not trust the payload as final state; re-query `getSelectedAccount()`.
+  `selected:null` can mean no account on the new chain, not a user logout.
+- `networkChanged`: re-query `getNetwork()`, rebuild the read client, and guard against a
+  `switchNetwork`/event feedback loop.
+- `disconnect`: clear local connection state; do not call `disconnect()` back from the handler.
 
-| Network | chainId | RPC |
-| --- | --- | --- |
-| mainnet | `a9c481dfbc7d9506dc7e87e9a137c931b0a9303f64fd7a1d08b8230133920097` | `https://api.mainnet.ultra.io` |
-| testnet | `7fc56be645bb76ab9d747b53089f132dcb7681db06f0852cfa03eaf6f7ac80e9` | see `07` (public testnet endpoints) |
-| localhost | per-boot — resolve via `get_info` | `http://127.0.0.1:8888` |
+There is no `chainChanged` event. SDK 0.3.2 manages extension listener registration, service-worker
+recovery, and its heartbeat. Call `dispose()` to release those resources.
 
-- dapp→wallet switch: `switchNetwork(chainId)` (confirm popup; best-effort — the wallet may
-  not have your localhost network). wallet→dapp: `networkChanged` event.
-- SDK constructed with `{environment}` validates the wallet's chainId at `connect()` and
-  throws `"Wallet environment mismatch…"`. Constructed with `{provider:'extension'}` and no
-  environment, no check happens (the dex dapp's choice — it supports localhost).
-- UX convention: on mismatch show a banner; don't force-switch.
+The production extension injects only on HTTPS pages. A downloaded extension will not inject on
+plain `http://localhost`; use an HTTPS local server for real manual QA. A self-built unpacked
+development artifact may retain loopback matches, but do not design production behavior around it.
 
-## 5. Reads are NOT the wallet's job
+## 7. Web Wallet lifecycle
 
-Chain reads bypass the wallet entirely: keep a read-only `APIClient` from
-`@wharfkit/antelope` pointed at the active network's RPC (details + snippets → `05` §3).
-Re-point it whenever the wallet's network changes.
+- Construct with `{provider:'web', environment:'mainnet'}` (or a verified deployed environment).
+- Keep one instance per environment; its popup origin is part of message validation.
+- Treat every connect/sign/disconnect operation as popup-based and user initiated.
+- Do not subscribe to events and do not call account/network/switch APIs from the capability matrix.
+- On environment change, clear Web Wallet-derived state, select the corresponding read RPC, and
+  require an explicit reconnect.
+- Explain blocked-popup recovery in the UI. Do not retry automatically; browsers require a fresh
+  user gesture.
 
-## 6. UX conventions (from the shipped dapps)
+The Web Wallet popup uses one in-flight request. Serialize wallet operations in UI state
+(`busy=true` until completion) rather than firing concurrent requests.
 
-- Connect button: "Install Ultra Wallet" (disabled) when `!isAvailable()`; connect → show
-  account name + Disconnect.
-- Eager-connect on load with `onlyIfTrusted: true` (MetaMask-style).
-- Refresh balances after connect and after every successful tx; keep last-known value on
-  read failure.
-- Tx flow: `busy=true` → run → success message with txId → reload on-chain state →
-  `finally busy=false`. Surface `res.message` on failure; `4001` reads as "you declined".
+## 8. Chain reads and local development
 
-## 7. Local development setup
+Reads use `APIClient` directly:
 
-### 7.1 Extension (build + load)
-
-```bash
-cd /home/adam/ultra.repos/web-app
-npx nx build browser-extension-wallet --skip-nx-cache          # or -c=qa / -c=production
-# → dist/browser-extension-wallet/  → chrome://extensions → Load unpacked
+```ts
+import { APIClient } from '@wharfkit/antelope';
+let client = new APIClient({ url: activeNodeUrl });
 ```
 
-In the extension: add a custom network `http://127.0.0.1:8888` (loopback allowed without
-HTTPS), import the local dev key, select the network. Well-known local dev keypair (chain
-bootstrap default, see `04`):
-priv `5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3` /
-pub `EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV`. **Local/dev only — never on a
-real network.**
+- Extension: rebuild using the authoritative `getNetwork().data.nodeUrl`.
+- Web Wallet: map the constructor environment to the corresponding public RPC.
+- Local/custom: extension only. Resolve a local chain ID with `get_info`; never hardcode it.
 
-### 7.2 HTTPS for manual QA
+For real extension QA, build/load the extension and serve the dapp over HTTPS. Follow `04` for a
+local chain and approved disposable fixtures. This document intentionally contains no key or
+credential material.
 
-Vite 5's HTTPS dev server breaks on Node 22 (TLS HMR websocket). The shipped pattern:
-build for prod, serve with the dependency-free `scripts/qa-https-server.mjs`
-(`npm run qa:https` → `https://localhost:5181`, self-signed cert in `.certs/`). An HTTPS
-page MAY read an `http://127.0.0.1:8888` RPC — loopback is exempt from mixed-content
-blocking and the chain serves CORS `*`.
+## 9. Testing and acceptance gate
 
-### 7.3 Local chain
+Tests must prove provider branching, not merely transaction business logic:
 
-Boot via ultratest2 `--keep-alive` (RPC on `:8888`) with an `e2e_setup.ts` that deploys your
-contract and re-keys test accounts to the dev key — full recipe in `04` §6 and the worked
-example. If the wallet needs account discovery (`get_accounts_by_authorizers`), the local
-chain must run with `--enable-account-queries`.
+1. **Unit:** extension present → extension SDK; absent → Web SDK bound to selected environment.
+2. **Extension integration mock:** injected `window.ultra`; connect, live account/network queries,
+   events, signing, disconnect, non-success envelopes and thrown errors.
+3. **Web integration mock:** no `window.ultra`; popup `ready`/JSON-RPC exchange, legacy connect
+   identity, `getChainId`, sign success/decline, popup blocked/closed, timeout, and serialization.
+   Assert no extension-only method is called.
+4. **Real Extension smoke:** persistent headed Chromium with the built MV3 extension; use disposable
+   approved fixtures supplied outside source control.
+5. **Real Web Wallet smoke:** deployed origin, popup connect and a non-destructive/manual signing
+   check in the intended environment. Never automate production-value movement.
 
-## 8. Testing wallet flows
+A dapp may claim **dual-wallet support** only if all of these are true:
 
-Two proven layers (details + file refs in `05` §6):
+- no extension still leaves a usable Web Wallet connect path;
+- extension present selects it automatically or offers both explicit buttons;
+- provider kind is retained in state;
+- Web Wallet identity comes from `connect()` and network comes from its environment/`getChainId()`;
+- extension-only APIs/events are guarded;
+- Web Wallet environment changes force reconnect;
+- both resolved failures and thrown/rejected errors are handled;
+- every action has structured `authorization` and partial signatures are rejected;
+- tests cover both provider branches, with no credentials in code or output.
 
-1. **Mocked `window.ultra`** (fast, headless, the default): Playwright `addInitScript`
-   installs a mock implementing exactly the provider surface; `signTransaction` bridges to a
-   Node-side signer that REALLY signs+pushes to the local chain with the dev key
-   (`ultra-dex-dapp/tests/e2e/mockWallet.ts` + `chain.ts`). Assertions read chain tables
-   directly in Node — the UI is checked against live on-chain truth.
-2. **Real extension** (`ultra-tool-kit/tests/e2e/`): `chromium.launchPersistentContext` with
-   `--load-extension` (MV3 ⇒ `headless:false`), poll `context.serviceWorkers()` for the SW,
-   seed the vault via `sw.evaluate`, route-stub `**/v1/chain/**` so nothing escapes to the
-   internet. Flaky on SW cold-start — keep retries.
+The Tip Jar (`09`) implements this shape. Its local-chain E2E remains an extension-provider mock;
+its provider-selection unit tests separately prove the Web Wallet branch. A real Web Wallet smoke
+is still required before deploying a product that claims live Web Wallet support.
 
-`web-app/test-dapp-harness.mjs` is the extension's own dapp-integration regression harness
-(connect/sign/disconnect/network/events) — useful as a reference for expected behavior.
+## 10. Failure handling and traps
 
-## 9. Trap list (wallet-specific)
-
-1. `window.ultra` missing → wrong scheme/host (HTTPS-only injection; §2) or extension not
-   loaded. Feature-detect; never assume.
-2. Two action shapes (SDK vs raw) — §3.3.
-3. `UltraResponse` envelope — check `status`, don't try/catch for user rejection (`4001`).
-4. `unsignedAuth` non-empty = partially signed tx — treat as failure.
-5. Don't wipe state on `accountChanged` with `selected:null`; don't echo `disconnect`.
-6. Web-wallet fallback has **no events** and a 10 s handshake timeout (`4300`).
-7. `addNetwork` via SDK is dead — users add custom networks in the extension UI.
-8. Asset strings must carry exact precision (`"1.00000000 UOS"`, 8 decimals for UOS).
-9. Call `sdk.dispose()` on teardown — else the 2 s heartbeat timer leaks.
-10. Localhost chainId differs per boot — resolve it from `get_info`, never hardcode.
+1. `window.ultra` missing disables only the extension path, not Web Wallet.
+2. Web Wallet on localhost/custom/testnet-without-a-deployment is unsupported; fail before popup.
+3. Check response `status` **and** use `try/catch` around every SDK call.
+4. User rejection is commonly code `4001`; popup handshake timeout `4300`; popup unavailable/
+   blocked `4301`. Treat codes as UX signals, not secrets or diagnostics to dump wholesale.
+5. `unsignedAuth` non-empty means partial signing; do not report success.
+6. Do not call Web Wallet account/network/event methods just because they exist on the SDK class.
+7. Do not silently open Web Wallet during app startup.
+8. Serialize Web Wallet popup calls.
+9. Rebuild the read client when the extension network changes or Web environment changes.
+10. Call `dispose()` on teardown.

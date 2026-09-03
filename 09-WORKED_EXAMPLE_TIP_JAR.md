@@ -1,11 +1,13 @@
 # 09 — Worked Example: Ultra Tip Jar (contract → tests → dapp → E2E)
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-09-03
 **Provenance:** this example was built 2026-07-23 by a **clean-room agent that knew nothing
 about Ultra**, using only this KB — every gate passed on the first real attempt (contract
 build ✅, 6/6 ultratest2 cases ✅ first run, vitest 9/9 ✅, `vue-tsc`+vite build ✅,
-Playwright 3/3 ✅ against a real seeded chain). Use it as the template for "build me a
-dapp that does X".
+Playwright 3/3 ✅ against a real seeded chain). On 2026-09-03 its wallet layer was upgraded to
+the dual-provider architecture in `06`, grounded in Ultra Bridge + Ultra Tool Kit. The original
+clean-room run proved extension-shaped signing against a real chain; it did not exercise the
+hosted Web Wallet popup. Use `06` §9's full gate before making a production dual-wallet claim.
 
 **The live artifacts** (build and run them — the code is the truth):
 
@@ -22,12 +24,14 @@ Users tip UOS by transferring to the `tipjar` contract with memo `tip,<note>`. T
 contract keeps a leaderboard (`tippers.a`: lifetime total, tip count, last note) and an
 **explicitly-accounted** pot (`jar.a` singleton — never a balance read). Admin-only
 `withdraw(to)` pays the pot out via inline transfer. Unknown memos revert. The Vue dapp
-connects the Ultra Wallet, shows the leaderboard + your balance, and signs tips.
+connects through the SDK using the Extension when injected or Web Wallet on a deployed hosted
+environment, shows the selected account + balance, and signs tips.
 
 It intentionally exercises every core pattern: memo dispatch, spoofed-token rejection,
 notify-context RAM, explicit accounting, effects-before-interactions, inline transfer +
 `eosio.code`, singleton, ≤12-char names, versioned tables, dev-key re-keying for E2E,
-the wallet-sdk action shape, and the mocked-`window.ultra` Playwright harness.
+the wallet-sdk action shape, provider-aware lifecycle split, provider-selection tests, and the
+mocked-`window.ultra` Playwright harness.
 
 ## 2. The contract (complete, as shipped)
 
@@ -198,14 +202,18 @@ await ultraAPI.system.addEosioCodePermission('tipjar', 'active', 'tipjar');
 
 `/home/adam/ultra.repos/ultra-tipjar-dapp` follows the `05` §2 structure exactly
 (`ultraWallet.ts` / `connection.ts` / `config.ts` / `tipjarClient.ts` / `tipjarMath.ts` +
-`Leaderboard.vue` + `TipForm.vue`). The two domain calls:
+`Leaderboard.vue` + `TipForm.vue`). `ultraWallet.ts` retains the active provider and caches one
+Extension SDK plus one Web SDK per environment. `connection.ts` auto-selects Extension when
+injected, otherwise Web; it derives both providers' account from `connect()`, then calls live
+account/network APIs and subscribes to events **only for Extension**. Web uses `getChainId()` plus
+the construction environment and requires reconnect on environment change. The two domain calls:
 
 ```ts
 // read (05 §3): leaderboard + pot straight from chain tables
 const { rows } = await client.v1.chain.get_table_rows({
   code: TIPJAR, scope: TIPJAR, table: 'tippers.a', json: true, limit: 100 });
 
-// write (06 §3.3): a tip is a wallet-signed eosio.token transfer with the routing memo
+// write (06 §5): a tip is a wallet-signed eosio.token transfer with the routing memo
 await signAndPush([{
   contract: 'eosio.token', action: 'transfer', authorization: auth(),
   data: { from: state.account, to: TIPJAR,
@@ -215,8 +223,11 @@ await signAndPush([{
 ```
 
 `tipjarMath.ts` is the (small) math mirror — raw↔display conversion, note cap, leaderboard
-sort — pinned by 9 vitest cases (`05` §5: even trivial mirrors get tests, because E2E
-assertions are built on them).
+sort — pinned by 9 vitest cases (`05` §5: even trivial mirrors get tests, because E2E assertions
+are built on them). `ultraWallet.test.ts` adds four provider tests: auto Web fallback, injected
+Extension selection, Web event gating, and the currently deployed Web environment. The Web
+Playwright case runs without `window.ultra` and exercises SDK 0.3.2's real popup/ready/JSON-RPC
+transport against a simulated Mainnet Web Wallet window; it asserts the account and provider UI.
 
 ## 5. E2E
 
@@ -229,26 +240,31 @@ setsid ultratest2 --contracts-dir-path=/home/adam/spring/eosio.contracts-tipjar/
 # terminal B
 cd /home/adam/ultra.repos/ultra-tipjar-dapp
 npm install && npx playwright install chromium
-npx playwright test          # 3 passed — connect+leaderboard-vs-chain, tip flow with
-                             # on-chain row/pot/balance delta assertions, note-cap guard
+npx playwright test          # 4 cases — 3 extension-shaped/local-chain cases + 1 Web popup mock
 pkill -x nodeos              # cleanup
 ```
 
 `e2e_setup.ts` deploys + funds alice/bob + seeds one starter tip + **re-keys alice/bob to
 the dev key last** (`04` §5/§6 — this is what lets the Playwright Node-side signer work).
-`tests/e2e/mockWallet.ts` + `chain.ts` are the `06` §8 harness verbatim: a `window.ultra`
+`tests/e2e/mockWallet.ts` + `chain.ts` are the `06` §9 extension harness: a `window.ultra`
 mock whose `signTransaction` really signs with the dev key and pushes, so contract asserts
-surface exactly like the real wallet.
+surface exactly like the real wallet. This proves business actions and extension-shaped transport;
+it does not prove hosted Web Wallet auth behavior. `03-web-wallet.spec.ts` validates the SDK popup
+transport with a simulated wallet origin, not the deployed authentication UI. Run both real-wallet
+smoke gates in `06` §9 before release. Approved test credentials must remain outside source control
+and output.
 
 ## 6. What validation taught the KB (already folded in)
 
-The clean-room build hit exactly six friction points, all fixed in these docs:
+The 2026-07-23 clean-room build hit exactly six friction points, all fixed in these docs:
 `getTableRows` returns `TableRows<T>` (destructure `.rows`) · `npx playwright install
 chromium` on fresh setups · the runner npm-installs the spec dir itself on first run ·
 `transferTokens` takes whole-UOS numbers vs `transferCustomTokens` asset strings ·
 keep-alive's `EXIT code=0` log line means *seeded*, not *stopped* · and this doc `09`
 itself was missing. Everything else — RAM gifting, re-keying, action shapes, memo rules,
-registration in `build.sh` — worked first try because docs `03`/`04`/`06` called it out.
+registration in `build.sh` — worked first try because docs `03`/`04`/`06` called it out. The
+2026-09-03 audit additionally found that the former canonical wrapper forced Extension and that a
+mocked extension did not validate Web Wallet; `06` now makes those boundaries explicit.
 
 ## 7. Going to production from here
 
