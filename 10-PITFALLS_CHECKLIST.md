@@ -60,6 +60,20 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
 
 ## Wallet & dapp (`05`, `06`)
 
+- [ ] Retain provider kind (`extension`/`web`). Missing `window.ultra` disables only Extension,
+      never the Web Wallet button/fallback on a deployed hosted environment.
+- [ ] Use the `06` capability matrix: Web Wallet identity comes from `connect()`, network from its
+      construction environment + `getChainId()`; no account/network queries, events, or switching.
+- [ ] Silent `onlyIfTrusted` restore and live events are extension-only. Environment changes for
+      Web Wallet require disconnect + a new environment-bound SDK instance + explicit reconnect.
+- [ ] SDK calls can both resolve non-success envelopes and reject/throw (popup blocked/closed,
+      timeout, mismatch, transport); check `status` inside `try/catch`.
+- [ ] Mainnet Web Wallet is deployed; do not expose SDK 0.3.2's Testnet Web Wallet path until its
+      staging hostname is deployed and smoke-tested. Local/custom networks are extension-only.
+- [ ] “Dual-wallet support” requires provider-branch tests plus real Extension and Web Wallet smoke
+      tests (`06` §9). A mocked `window.ultra` + real chain proves extension-shaped signing only.
+- [ ] Never store/log/commit wallet credentials or funded fixtures; inject approved test secrets
+      externally and skip real-wallet tests when they are unavailable.
 - [ ] `window.ultra` injects on **HTTPS only** in the shipped/CWS extension (the prod build
       strips loopback) — including on `localhost`; serve QA builds over HTTPS (`qa:https`; Vite
       dev-HTTPS breaks on Node 22). Only a self-built unpacked dev extension honors

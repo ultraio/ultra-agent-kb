@@ -1,6 +1,6 @@
 # Ultra Developer Knowledge Base — for AI Agents
 
-**Last Updated:** 2026-08-04
+**Last Updated:** 2026-09-03
 **Purpose:** give an AI agent (or a new developer) everything needed to go from a one-line
 prompt — *"build me a dapp that does X on Ultra"* — to a working smart contract, a tested
 web dapp integrated with the Ultra Wallet, and a deployment path to testnet/mainnet, without
@@ -24,8 +24,9 @@ sibling repos on this machine. When a doc conflicts with code, the code wins —
    `docker info` FIRST. If it fails, Tier 2 (contract compile + local chain) cannot run on
    this machine, and that is an environment limitation, not a KB gap.**
 3. **Develop locally**: contract (`03`) → spec suite green on a real local chain (`04`) →
-   dapp + wallet integration (`05`/`06`) → Playwright E2E against a keep-alive seeded
-   chain (`04` §6, `05` §6). The Tip Jar (`09`) is the full worked template.
+   dapp + dual-provider wallet integration (`05`/`06`) → provider-branch tests + Playwright
+   E2E against a keep-alive seeded chain (`04` §6, `05` §6). The Tip Jar (`09`) is the
+   worked template; follow `06`'s real-wallet acceptance gate before claiming production support.
 4. **Ship**: testnet first, then mainnet (`08` — permissionless deploy: account + UOS + RAM; runbook,
    governance handoff), dapp hosting (`08` §6). Verify per `08` §7.
 
@@ -41,7 +42,7 @@ dev loop needs is in `00`'s matrix.
 | Write a smart contract | `01` → `03` → `04` |
 | Test a contract (local chain) | `04` |
 | Build a dapp frontend | `05` → `06` |
-| Integrate the Ultra Wallet (extension / web wallet) | `06` |
+| Integrate the Ultra Wallet SDK (both extension + Web Wallet) | `06` (capability matrix and acceptance gate are mandatory) |
 | Read chain data (RPC, GraphQL, indexers) | `07` |
 | Deploy to testnet / mainnet (contract + dapp) | `08` |
 | See one complete end-to-end example | `09` |
@@ -73,16 +74,16 @@ dev loop needs is in `00`'s matrix.
   seeding, assertion helpers.
 - **`05-DAPP_DEVELOPMENT.md`** — the proven dapp stack (Vue 3 + Vite + TS), project
   structure, reading chain state, the math-mirror pattern, unit + E2E testing.
-- **`06-WALLET_INTEGRATION.md`** — the Ultra Wallet ecosystem (extension, web wallet),
-  `window.ultra` API, `@ultraos/wallet-sdk`, connect/sign/broadcast flows, events,
-  network sync, local-dev setup, Playwright wallet mocks.
+- **`06-WALLET_INTEGRATION.md`** — the canonical dual-provider `@ultraos/wallet-sdk`
+  integration: extension/Web capability matrix, provider-aware wrapper, connect/sign/error
+  flows, lifecycle split, environment availability, tests, and the production acceptance gate.
 - **`07-CHAIN_INTERACTION_AND_DATA.md`** — live RPC endpoints (mainnet + testnet), cleos
   recipes, the public GraphQL API, dfuse/firehose, block explorers.
 - **`08-TESTNET_AND_MAINNET_DEPLOYMENT.md`** — accounts + RAM, deploying a contract
   (testnet, then mainnet — permissionless deployment), msig, code-lock /
   immutability, and the standard dapp-hosting pattern (Cloudflare Pages).
 - **`09-WORKED_EXAMPLE_TIP_JAR.md`** — a complete, actually-built example: contract +
-  ultratest2 spec + Vue dapp with wallet signing, every command, every gotcha hit.
+  ultratest2 spec + Vue dapp with SDK-based extension/Web provider selection and wallet signing.
 - **`10-PITFALLS_CHECKLIST.md`** — the condensed "before you ship" checklist.
 - **`11-CORE_CONTRACT_INTERFACES.md`** — integrating Ultra's system contracts whose **source is
   private but whose interface is public**: how to pull any contract's ABI (image / `cleos get
@@ -116,13 +117,16 @@ references into Ultra-internal material (the private `ultraOS-doc` repo, private
 repos) are tagged `[internal]` and are never load-bearing — every doc carries the facts it
 needs inline, and `00` gives public alternatives. Absolute `/home/...` paths describe the
 internal reference dev machine the KB was validated on; public readers substitute the
-`00` §3 bootstrap. Content was synthesized from developers.ultra.io, the Ultra source
-repos, and the shipped wallet/dapp codebases, then **clean-room-validated** (2026-07-23) by
-an agent that built the complete Tip Jar stack (`09`) from this KB alone.
+`00` §3 bootstrap. Content was synthesized from developers.ultra.io, the Ultra source repos, and
+shipped wallet/dapp codebases. The contract/dapp/local-chain path was **clean-room-validated**
+(2026-07-23) by an agent that built the Tip Jar stack (`09`) from this KB alone. On 2026-09-03 its
+wallet layer was updated against the dual-provider patterns in Ultra Bridge and Ultra Tool Kit.
+Clean-room validation did not use a real Web Wallet; `06` states the additional release gate.
 
 **Clean-room validated on the public path.** A fresh agent, given only this KB +
 `quay.io/ultra.io/3rdparty-devtools:latest` + public npm — every host tool and every other
 path on the machine forbidden — designs and ships a complete contract + dapp end to end:
 `cdt-cpp` build, ultratest2 spec suite, dapp unit tests, `vue-tsc + vite build`, and
-live-chain integration (real signed action, surfaced contract assert), then follows doc `08`'s
-mainnet runbook against live testnet. No private repo, no host binary, no workaround.
+live-chain integration (real signed action through an extension-shaped mock, surfaced contract
+assert), then follows doc `08`'s mainnet runbook against live testnet. Provider-selection tests now
+cover the Web branch, but a product must also pass `06` §9's real Web Wallet smoke before release.
