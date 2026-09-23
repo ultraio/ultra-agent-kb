@@ -50,7 +50,7 @@ not documented here; the source monorepo can be ahead of npm.
 | `getAccounts`, `getSelectedAccount`, `getAvailableAuthorizations` | Yes (`getAccounts` returns `AccountInfo[]` from extension 2.2.14; bare names before) | Do not call; rejects `-32601` after opening the popup |
 | `getNetwork`, `getNetworks` | Yes | Throws “Not supported in web provider” |
 | `switchNetwork` | Yes (user-added networks from extension 2.2.14) | Throws “Not supported in web provider” |
-| `addNetwork` | Removed in SDK 0.6.0 (dApps cannot add networks; users add them in Settings → Networks) | — |
+| `addNetwork` | Removed in SDK 0.6.0 — there is no API for a dApp to add a network. Users add networks themselves in the extension (Menu → Networks → Add Custom Network); a connected dApp can then `switchNetwork()` to it (extension 2.2.14+) | — |
 | `accountChanged`, `networkChanged`, `disconnect` events | Yes | No-op / unsupported |
 | Localhost/custom networks | Yes | No |
 | Silent `onlyIfTrusted` restore on page load | Yes | Do not use; it would open a popup |
