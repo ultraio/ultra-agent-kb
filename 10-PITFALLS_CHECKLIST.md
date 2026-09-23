@@ -68,8 +68,8 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       Web Wallet require disconnect + a new environment-bound SDK instance + explicit reconnect.
 - [ ] SDK calls can both resolve non-success envelopes and reject/throw (popup blocked/closed,
       timeout, mismatch, transport); check `status` inside `try/catch`.
-- [ ] Mainnet Web Wallet is deployed; do not expose SDK 0.3.2's Testnet Web Wallet path until its
-      staging hostname is deployed and smoke-tested. Local/custom networks are extension-only.
+- [ ] Web Wallet is Mainnet-only; with `environment: 'testnet'` SDK 0.6.1 rejects Web Wallet calls
+      with `4302`, so never offer it on testnet. Local/custom networks are extension-only.
 - [ ] “Dual-wallet support” requires provider-branch tests plus real Extension and Web Wallet smoke
       tests (`06` §9). A mocked `window.ultra` + real chain proves extension-shaped signing only.
 - [ ] Never store/log/commit wallet credentials or funded fixtures; inject approved test secrets
@@ -96,7 +96,7 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
       NOT `err.message` — `String(e.message)` makes revert-tests vacuously pass.
 - [ ] `--keep-alive` chains are **stateful across runs** — mutating E2E specs must be
       idempotent or the chain re-seeded.
-- [ ] Pin `@ultraos/wallet-sdk` `^0.3.2`+ (earlier can't be imported by vitest/Node/SSR).
+- [ ] Pin `@ultraos/wallet-sdk` `^0.6.1` (≤0.3.1 can't be imported by vitest/Node/SSR; 0.6.0 Web Wallet JSON-RPC errors reject with `undefined`).
 - [ ] Local chain for wallet flows needs `--enable-account-queries` (ultratest2 default).
 
 ## Integrating core contracts (`11`)

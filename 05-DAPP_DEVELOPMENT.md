@@ -16,12 +16,12 @@ exactly three runtime packages:
 ```json
 "dependencies": {
   "vue": "^3.5.0",
-  "@ultraos/wallet-sdk": "^0.3.2",     // extension + Web Wallet signing; no keys in the dapp
+  "@ultraos/wallet-sdk": "^0.6.1",     // extension + Web Wallet signing; no keys in the dapp
   "@wharfkit/antelope": "^1.0.13"      // read-only chain client
 }
 ```
 
-**Pin `@ultraos/wallet-sdk` at `^0.3.2` or later.** 0.3.1 and earlier ship directory/
+**Pin `@ultraos/wallet-sdk` at `^0.6.1`.** 0.3.1 and earlier ship directory/
 extensionless internal imports that Node's ESM resolver rejects
 (`ERR_UNSUPPORTED_DIR_IMPORT`) — fine in a browser bundle, but it breaks **vitest, SSR and
 any plain-Node script**, i.e. exactly the unit testing in §6.
