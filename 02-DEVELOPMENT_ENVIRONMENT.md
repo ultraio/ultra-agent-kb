@@ -84,7 +84,7 @@ facts, not Ultra-specific — call them out in any runbook a mixed-OS team share
 
 - Vite + Vue 3 + TypeScript (exemplars: `ultra-dex-dapp`,
   `ultra-lend-dapp`, `ultra-farm-dapp`; React variant: `ultra-bridge-dapp`).
-- `@ultraos/wallet-sdk` (published **0.3.2** — pin `^0.3.2`, see `05` §1) + `@wharfkit/antelope` (^1.0.13).
+- `@ultraos/wallet-sdk` (published **0.6.1** — pin `^0.6.1`, see `05` §1) + `@wharfkit/antelope` (^1.0.13).
 - Playwright for E2E; vitest for unit tests.
 - npm registry access required (a corporate VPN can block npm).
 - For real-extension QA you need Chrome + the extension built from

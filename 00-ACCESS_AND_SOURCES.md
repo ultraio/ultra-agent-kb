@@ -149,7 +149,7 @@ refreshed image is **Node 22 / npm 10 with ultratest2 preinstalled**, so neither
 signal than before — but it is still a local single-node chain: re-verify on testnet before
 mainnet (`08`).
 
-`@ultraos/wallet-sdk` **≥ 0.3.2** ships a bundled `dist/` + `exports` map, so it imports
+`@ultraos/wallet-sdk` **≥ 0.3.2** (current 0.6.1) ships a bundled `dist/` + `exports` map, so it imports
 cleanly in **plain Node / SSR / test runners** as well as bundlers. (On `0.3.1` and earlier a
 plain-Node import fails with `ERR_UNSUPPORTED_DIR_IMPORT` — upgrade rather than work around it.)
 

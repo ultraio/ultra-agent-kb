@@ -33,11 +33,13 @@ private keys, or raw `window.ultra` calls.
 - Reads bypass the wallet. Use `@wharfkit/antelope` with the endpoint associated with the
   resolved extension network or selected Web Wallet environment.
 
-Published SDK version: **0.3.2**. New dapps must pin `^0.3.2` (0.3.1 and earlier break plain
-Node/Vitest/SSR ESM imports). Verify `npm view @ultraos/wallet-sdk version` before adopting APIs
+Published SDK version: **0.6.1**. New dapps should pin `^0.6.1` (0.3.1 and earlier break plain
+Node/Vitest/SSR ESM imports; 0.6.0 removed `purchaseItem`/`addNetwork`; 0.6.1 fixes Web Wallet
+JSON-RPC errors rejecting with `undefined`, rejects testnet Web Wallet calls with `4302`, and makes
+types resolve under `moduleResolution: nodenext`). Verify `npm view @ultraos/wallet-sdk version` before adopting APIs
 not documented here; the source monorepo can be ahead of npm.
 
-### Capability matrix for published SDK 0.3.2 + current wallets
+### Capability matrix for published SDK 0.6.1 + current wallets
 
 | Capability | Extension | Web Wallet |
 | --- | --- | --- |
@@ -45,24 +47,24 @@ not documented here; the source monorepo can be ahead of npm.
 | `signTransaction`, `signMessage` | Yes | Yes, popup |
 | `getChainId` | Yes | Yes |
 | Account identity | Connect result + live queries | **Connect result only** |
-| `getAccounts`, `getSelectedAccount`, `getAvailableAuthorizations` | Yes | Do not call; current Web Wallet server does not expose them |
+| `getAccounts`, `getSelectedAccount`, `getAvailableAuthorizations` | Yes (`getAccounts` returns `AccountInfo[]` from extension 2.2.14; bare names before) | Do not call; rejects `-32601` after opening the popup |
 | `getNetwork`, `getNetworks` | Yes | Throws “Not supported in web provider” |
-| `switchNetwork`, `addNetwork` | `switchNetwork` yes; `addNetwork` route is unavailable | Throws “Not supported in web provider” |
+| `switchNetwork` | Yes (user-added networks from extension 2.2.14) | Throws “Not supported in web provider” |
+| `addNetwork` | Removed in SDK 0.6.0 (dApps cannot add networks; users add them in Settings → Networks) | — |
 | `accountChanged`, `networkChanged`, `disconnect` events | Yes | No-op / unsupported |
 | Localhost/custom networks | Yes | No |
 | Silent `onlyIfTrusted` restore on page load | Yes | Do not use; it would open a popup |
-| `purchaseItem` | Do not depend on it without a current product-specific validation | Do not use; current UI route is incomplete |
+| `purchaseItem` | Removed in SDK 0.6.0 — use the on-chain `eosio.nft.ft::purchase.a` action via `signTransaction` | Removed |
 
-Current production availability (verified 2026-09-03): `https://web-wallet.ultra.io` serves
-Mainnet. SDK 0.3.2 contains `https://web-wallet.staging.ultra.io` for `testnet`, but that hostname
-is not currently deployed in public DNS. **Do not show Web Wallet for Testnet until that endpoint
-is deployed and a connect smoke test passes.** This limitation does not affect Testnet through
-the extension.
+Current production availability (verified 2026-09-23): `https://web-wallet.ultra.io` serves
+Mainnet only. The testnet Web Wallet was decommissioned; SDK 0.6.1 rejects Web Wallet calls with
+`environment: 'testnet'` immediately with `SdkErrorCode.WEB_WALLET_UNAVAILABLE` (4302). **Do not show
+Web Wallet for Testnet.** Testnet works through the extension.
 
 ## 2. Install and choose a provider
 
 ```bash
-npm install @ultraos/wallet-sdk@^0.3.2 @wharfkit/antelope
+npm install @ultraos/wallet-sdk@^0.6.1 @wharfkit/antelope
 ```
 
 Two product designs are valid:
@@ -273,7 +275,7 @@ Subscribe after a successful connect and unsubscribe/dispose on teardown:
   `switchNetwork`/event feedback loop.
 - `disconnect`: clear local connection state; do not call `disconnect()` back from the handler.
 
-There is no `chainChanged` event. SDK 0.3.2 manages extension listener registration, service-worker
+There is no `chainChanged` event. The SDK manages extension listener registration, service-worker
 recovery, and its heartbeat. Call `dispose()` to release those resources.
 
 The production extension injects only on HTTPS pages. A downloaded extension will not inject on
