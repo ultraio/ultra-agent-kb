@@ -1,6 +1,6 @@
 # 09 — Worked Example: Ultra Tip Jar (contract → tests → dapp → E2E)
 
-**Last Updated:** 2026-09-03
+**Last Updated:** 2026-09-25
 **Provenance:** this example was built 2026-07-23 by a **clean-room agent that knew nothing
 about Ultra**, using only this KB — every gate passed on the first real attempt (contract
 build ✅, 6/6 ultratest2 cases ✅ first run, vitest 9/9 ✅, `vue-tsc`+vite build ✅,
@@ -164,12 +164,14 @@ Plus `ricardian/tipjar.contracts.md.in` (a clause for `withdraw`) and the standa
 > ```bash
 > # in the public dev image (00 §3); the Tip Jar also ships at /opt/templates/tipjar
 > cdt-cpp -abigen -I include -o /work/build/tipjar/tipjar.wasm src/tipjar.cpp
+> # with your own ricardian clauses (03 §2): add  -contract tipjar -R ricardian
 > ultratest2 --contracts-dir-path=/opt/eosio.contracts/build/contracts \
 >   -t /work/tipjar/tipjar.spec.ts
 > ```
 >
 > `cdt-cpp` alone emits both `.wasm` and `.abi` — you do **not** need `build.sh`, the
-> `contract_list` registration, or a CMake project. Point `publishContract` at your own
+> `contract_list` registration, or a CMake project. (`-R <dir>` embeds ricardian clauses;
+> `empty ricardian clause file` / `does not have a ricardian contract` warnings are harmless.) Point `publishContract` at your own
 > build dir (`04` §4) and use the spec-dir `package.json` from `00` §3.
 
 ```bash
@@ -239,7 +241,7 @@ setsid ultratest2 --contracts-dir-path=/home/adam/spring/eosio.contracts-tipjar/
 
 # terminal B
 cd /home/adam/ultra.repos/ultra-tipjar-dapp
-npm install && npx playwright install chromium
+npm install && npx playwright install chromium   # inside the devtools image: --with-deps chromium (05 §7)
 npx playwright test          # 4 cases — 3 extension-shaped/local-chain cases + 1 Web popup mock
 pkill -x nodeos              # cleanup
 ```
@@ -248,7 +250,8 @@ pkill -x nodeos              # cleanup
 the dev key last** (`04` §5/§6 — this is what lets the Playwright Node-side signer work).
 `tests/e2e/mockWallet.ts` + `chain.ts` are the `06` §9 extension harness: a `window.ultra`
 mock whose `signTransaction` really signs with the dev key and pushes, so contract asserts
-surface exactly like the real wallet. This proves business actions and extension-shaped transport;
+surface exactly like the real wallet. The exact surface such a mock must implement for SDK 0.6.1
+is listed in `05` §6 ("Mock `window.ultra` surface"). This proves business actions and extension-shaped transport;
 it does not prove hosted Web Wallet auth behavior. `03-web-wallet.spec.ts` validates the SDK popup
 transport with a simulated wallet origin, not the deployed authentication UI. Run both real-wallet
 smoke gates in `06` §9 before release. Approved test credentials must remain outside source control

@@ -1,6 +1,6 @@
 # Ultra Developer Knowledge Base — for AI Agents
 
-**Last Updated:** 2026-09-03
+**Last Updated:** 2026-09-25
 **Purpose:** give an AI agent (or a new developer) everything needed to go from a one-line
 prompt — *"build me a dapp that does X on Ultra"* — to a working smart contract, a tested
 web dapp integrated with the Ultra Wallet, and a deployment path to testnet/mainnet, without
@@ -124,7 +124,8 @@ wallet layer was updated against the dual-provider patterns in Ultra Bridge and 
 Clean-room validation did not use a real Web Wallet; `06` states the additional release gate.
 
 **Clean-room validated on the public path.** A fresh agent, given only this KB +
-`quay.io/ultra.io/3rdparty-devtools:latest` + public npm — every host tool and every other
+`quay.io/ultra.io/3rdparty-devtools:0.4.1-ubuntu24` (re-validated 2026-09-25 with a new escrow
+contract + specs + Vue dapp; earlier runs used the July-2026 build) + public npm — every host tool and every other
 path on the machine forbidden — designs and ships a complete contract + dapp end to end:
 `cdt-cpp` build, ultratest2 spec suite, dapp unit tests, `vue-tsc + vite build`, and
 live-chain integration (real signed action through an extension-shaped mock, surfaced contract

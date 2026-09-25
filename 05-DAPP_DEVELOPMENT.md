@@ -1,6 +1,6 @@
 # 05 — Dapp Development
 
-**Last Updated:** 2026-09-03
+**Last Updated:** 2026-09-25
 **Read this to:** build the web frontend for an Ultra contract the way the shipped dapps do.
 Exemplars: `/home/adam/ultra.repos/ultra-dex-dapp` (the reference), `ultra-lend-dapp`,
 `ultra-farm-dapp` (Vue); `ultra-bridge-dapp` (React, production at bridge.ultra.io).
@@ -157,6 +157,34 @@ contract uses u128 saturation, either mirror it or document the divergence.
     the real wallet.
   - Assertions read chain tables in Node and compare the UI against on-chain truth via the
     math mirror — exact, not approximate.
+- **Mock `window.ultra` surface (what `@ultraos/wallet-sdk@0.6.1` actually calls)** — read from
+  the published package's `dist/index.mjs` + typings. The Extension provider is a thin
+  pass-through: each SDK method calls the same-named `window.ultra` method and returns its
+  result **unchanged**, so every mock method must be `async` and resolve to the envelope
+  `{ status: 'success' | 'fail' | 'error', data, message?, code? }`.
+  - **Detection:** auto mode picks Extension iff `'ultra' in window` **when `new UltraWalletSDK()`
+    runs** → install the mock with `page.addInitScript` (before app code).
+  - `connect(params?)` → the SDK **first calls `getChainId()`** and reads `.data`; if the SDK was
+    constructed with `environment: 'mainnet'|'testnet'` that chain ID must equal the public
+    network's or `connect` throws *Wallet environment mismatch* (no/other `environment` = no
+    check — use that for a local chain). Then `window.ultra.connect(params)` → `data`:
+    `{ blockchainid: '<account>', publicKey, selectedAccount?: { accountName, permissions:
+    [{ name, publicKeys: [] }] }, accounts?, network?: { name, chainId } }`.
+  - `signTransaction(txOrTxs, options?)` — `txOrTxs` = one or an array of `{ contract, action,
+    data, authorization: [{ actor, permission }] }`, `options` = `{ signOnly? }` → `data`:
+    `{ transactionHash?, unsignedAuth?: string[], processed? }`; return `status:'fail'|'error'`
+    + `message` for a chain/assert failure.
+  - `signMessage(message)` → `data: { signature }`; `disconnect()` → `data: boolean`;
+    `getChainId()` → `data: '<chainId>'`; `getSelectedAccount()` → `AccountInfo`;
+    `getAccounts()` → `AccountInfo[]`; `getAvailableAuthorizations()` → `[{ accountName,
+    permission, publicKey }]`; `getNetwork()` → `{ name, chainId, nodeUrl }`; `getNetworks()`
+    → array of those; `switchNetwork(chainId)`. Stub only what your app calls.
+  - **Events:** the SDK never calls `window.ultra.on`. It listens for `window.postMessage`
+    messages from the same window shaped `{ type: 'EVENT', payload: { event, data } }` (`event`
+    = `accountChanged` | `networkChanged` | `disconnect`) — emit those to simulate events.
+    `addExtensionListener(event, id)` / `removeExtensionListener(event, id)` are **optional**
+    (called via `?.` after `on()`, after a successful `connect`, and every 2 s while listeners
+    exist) — omit them or return a resolved promise.
 - **Provider tests:** no injected extension must construct Web SDK; injected extension must select
   Extension SDK; Web tests assert no extension-only API is called (`06` §9).
 - **Real-wallet smoke:** headed extension flow and deployed Web Wallet popup flow are both required
@@ -168,6 +196,9 @@ contract uses u128 saturation, either mirror it or document the divergence.
 npm install          # VPN can block the registry
 npx playwright install chromium   # once per fresh dapp/Playwright version — browser
                                   # binaries are NOT installed by npm install
+# inside the devtools image (or any bare Linux/CI box) use instead:
+npx playwright install --with-deps chromium   # also apt-installs the system libs; without
+                                  # them launch fails: libglib-2.0.so.0: cannot open shared object
 npm run dev          # Vite; VITE_NODE_URL=http://127.0.0.1:8888 for a local chain
 npm test             # vitest math mirror
 npm run build        # vue-tsc --noEmit + vite build
