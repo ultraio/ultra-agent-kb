@@ -64,8 +64,12 @@ Web Wallet for Testnet.** Testnet works through the extension.
 ## 2. Install and choose a provider
 
 ```bash
-npm install @ultraos/wallet-sdk@^0.6.1 @wharfkit/antelope
+npm install @ultraos/wallet-sdk@^0.6.1 @wharfkit/antelope@^1.0.13
 ```
+
+Keep the `@wharfkit/antelope` pin: `4.x` (npm `latest` since 2026-09-24) fails to load under the image's
+Node 22.11 (`ERR_REQUIRE_ESM` from `@noble/hashes`, both `require` and `import`), which breaks
+vitest, Node-side signers and scripts. `^1.0.13` resolves to 1.2.0 and works.
 
 Two product designs are valid:
 
@@ -80,7 +84,7 @@ layer needs that kind to avoid calling extension-only methods on Web Wallet.
 
 ```ts
 export type WalletKind = 'extension' | 'web';
-export type WalletEnvironment = 'mainnet' | 'testnet';
+export type WalletEnvironment = 'mainnet' | 'testnet' | 'local';  // local = extension only (§8)
 
 export function extensionAvailable(): boolean {
   return typeof window !== 'undefined' && !!(window as any).ultra;
@@ -104,7 +108,7 @@ import type {
 } from '@ultraos/wallet-sdk';
 
 type WalletKind = 'extension' | 'web';
-type WalletEnvironment = 'mainnet' | 'testnet';
+type WalletEnvironment = 'mainnet' | 'testnet' | 'local';  // local = extension only (§8)
 const deployedWebWalletEnvironments = new Set<WalletEnvironment>(['mainnet']);
 
 let extensionSdk: UltraWalletSDK | null = null;
@@ -318,6 +322,8 @@ credential material.
 Tests must prove provider branching, not merely transaction business logic:
 
 1. **Unit:** extension present → extension SDK; absent → Web SDK bound to selected environment.
+   In plain-Node vitest, stub `globalThis.window = new EventTarget()` (plus `ultra` for the extension
+   case): a bare `{}` makes the Web SDK constructor throw `window.addEventListener is not a function`.
 2. **Extension integration mock:** injected `window.ultra`; connect, live account/network queries,
    events, signing, disconnect, non-success envelopes and thrown errors. The exact surface the
    SDK calls (incl. `getChainId` before `connect`, the `postMessage` event shape) is in `05` §6.
@@ -340,6 +346,10 @@ A dapp may claim **dual-wallet support** only if all of these are true:
 - both resolved failures and thrown/rejected errors are handled;
 - every action has structured `authorization` and partial signatures are rejected;
 - tests cover both provider branches, with no credentials in code or output.
+
+**Public-only agents** can prove gates 1–2 (unit + extension mock). Gates 3–5 need material that is
+not public: the Web Wallet popup/JSON-RPC message protocol, a built extension that trusts a local
+network, and approved fixtures — state that limitation instead of reverse-engineering the SDK bundle.
 
 The Tip Jar (`09`) implements this shape. Its local-chain E2E remains an extension-provider mock;
 its provider-selection unit tests separately prove the Web Wallet branch. A real Web Wallet smoke

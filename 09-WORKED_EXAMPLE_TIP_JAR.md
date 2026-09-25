@@ -167,7 +167,8 @@ Plus `ricardian/tipjar.contracts.md.in` (a clause for `withdraw`) and the standa
 > mkdir -p /work/build/tipjar     # cdt-cpp does not create the -o dir (03 §2)
 > cdt-cpp -abigen -I include -o /work/build/tipjar/tipjar.wasm src/tipjar.cpp
 > # with your own ricardian clauses (03 §2): add  -contract tipjar -R ricardian
-> #   (-R reads ricardian/tipjar.contracts.md — rename the template's .md.in, 03 §1)
+> #   (-R reads ricardian/tipjar.contracts.md — the image template ships no ricardian/ dir;
+> #    write the file per 03 §1, never as .md.in)
 > ultratest2 --contracts-dir-path=/opt/eosio.contracts/build/contracts \
 >   -t /work/tipjar/tipjar.spec.ts
 > ```
