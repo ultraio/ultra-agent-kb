@@ -1,6 +1,6 @@
 # 02 — Development Environment
 
-**Last Updated:** 2026-09-25
+**Last Updated:** 2026-09-26
 **Read this to:** know exactly what toolchain exists (and where it lives in Ultra's
 internal setup), and how to stand it up elsewhere. **No private access?** Use the
 public bootstrap in `00` §3 (quay.io devtools image + npm packages) instead of §1.
@@ -16,7 +16,7 @@ Repository paths below are relative to wherever you keep your checkouts (e.g. `e
 | --- | --- | --- | --- |
 | **CDT** (`cdt-cpp`) | 4.1.1 | `/usr/local/bin/cdt-cpp` (installed package; or an `eosio.cdt/build` source tree) | compile C++ → wasm/abi |
 | **nodeos / cleos** | v6.2.2-3.0.0 (Ultra Spring fork) | `/usr/local/bin/{nodeos,cleos}` (installed package, or built from `ultraio/eosio`) | local chain + CLI |
-| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` = **1.0.6**, also preinstalled in the `0.4.1-*` devtools image; internal setups may `npm link` an `ultraio/ultratest2` checkout instead) | global npm bin (`npm root -g`) | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
+| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` = **1.0.6**, also preinstalled in the `0.4.2-*` devtools image; internal setups may `npm link` an `ultraio/ultratest2` checkout instead) | global npm bin (`npm root -g`) | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
 | **Node.js** | v22 | any install (nvm works) | ultratest2, dapps |
 | Spring source | `eosio/` (Ultra's Spring fork, `ultraio/eosio`) | | protocol reference |
 | eosio.contracts | `eosio.contracts/` (branch `master`) | | system contracts + `build.sh` |
@@ -32,7 +32,7 @@ unrelated WIP; **don't build your work there** — make your own worktree (`03` 
 
 ```bash
 cdt-cpp --version                 # cdt-cpp version 4.1.1
-nodeos --version                  # v6.2.2-3.0.0 here; v6.2.2-3.0.1 in the 0.4.1-* image
+nodeos --version                  # v6.2.2-3.0.0 here; v6.2.2-3.0.2 in the 0.4.2-* image
 ultratest2 --version              # banner (NEVER run `ultratest2 --help` — it hangs)
 ls eosio.contracts-defi/build/contracts/ultra.dex/   # prebuilt exemplar wasm/abi
 ```
