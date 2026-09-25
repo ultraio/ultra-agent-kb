@@ -1,6 +1,6 @@
 # 03 — Smart Contract Development
 
-**Last Updated:** 2026-08-04
+**Last Updated:** 2026-09-25
 **Read this to:** write, structure, and build an Ultra (Antelope) C++ contract the way the
 shipped production suite does. The best living exemplars are the five DeFi contracts in
 `eosio.contracts-defi/contracts/` (`ultra.dex` is the reference).
@@ -78,6 +78,19 @@ only for native C++ tests; a new **test-helper** contract registers in
 **Standalone (`cdt-cpp`) — fine for a single-file contract:**
 `cdt-cpp -o hello.wasm hello.cpp` emits both `hello.wasm` and `hello.abi`
 (add `-I include` as needed). This is the official-docs path (VS Code extension wraps it).
+With ricardian clauses and an explicit contract name (verified with the `0.4.1` image's CDT 4.1.1):
+
+```bash
+mkdir -p build/mycontract      # cdt-cpp does NOT create the -o dir (wasm-ld: failed to open …)
+cdt-cpp -abigen -contract mycontract -R ricardian -I include \
+  -o build/mycontract/mycontract.wasm src/mycontract.cpp
+# -R <dir>        dir holding mycontract.contracts.md (§1 format) → clauses embedded in the ABI
+# -contract <n>   the [[eosio::contract("n")]] name; without it cdt-cpp takes the name from the
+#                 -o file name (mismatch → "contract class not found" warning)
+```
+
+`Warning, empty ricardian clause file` (no `<name>.clauses.md`) and `Warning, action <x> does not
+have a ricardian contract` are **harmless** — the `.wasm`/`.abi` are still produced.
 
 ## 3. A minimal real contract
 
