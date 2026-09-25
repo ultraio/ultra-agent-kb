@@ -35,7 +35,8 @@ resolve to two different vite majors and hard-fail `vue-tsc`):
   "@vitejs/plugin-vue": "^5.1.0",
   "vitest": "^2.1.0",
   "vue-tsc": "^2.1.0",
-  "typescript": "^5.6.0"
+  "typescript": "^5.6.0",
+  "@playwright/test": "^1.55.0"   // E2E (§6); then `npx playwright install --with-deps chromium`
 }
 ```
 
@@ -153,8 +154,31 @@ contract uses u128 saturation, either mirror it or document the divergence.
     implementing the exact provider surface; `signTransaction` bridges via
     `page.exposeFunction` to `tests/e2e/chain.ts`, which REALLY signs with the dev key and
     pushes (`@wharfkit/antelope`: fetch ABI → build Action/Transaction → sign →
-    `push_transaction`), returning `{ok:false, error}` so contract asserts surface like
-    the real wallet.
+    `push_transaction`), returning the SDK envelope (`{status:'fail', message}` on an assert) so
+    contract asserts surface like the real wallet. Minimal `chain.ts` (clean-room validated,
+    `@wharfkit/antelope@^1.0.13`; the key is the local-chain dev key of `04` §5, passed in via env):
+    ```ts
+    import { APIClient, Action, Transaction, SignedTransaction, PrivateKey } from '@wharfkit/antelope';
+    const client = new APIClient({ url: process.env.VITE_NODE_URL ?? 'http://127.0.0.1:8888' });
+    const key = PrivateKey.from(process.env.LOCAL_DEV_KEY!);   // local test chain only
+    export async function signAndPush(txs: any | any[]) {   // { contract, action, data, authorization }
+      try {
+        const info = await client.v1.chain.get_info();
+        const actions = await Promise.all([txs].flat().map(async (a) => Action.from({ account: a.contract,
+          name: a.action, authorization: a.authorization, data: a.data },
+          (await client.v1.chain.get_abi(a.contract)).abi!)));
+        const tx = Transaction.from({ ...info.getTransactionHeader(120), actions });
+        const sig = key.signDigest(tx.signingDigest(info.chain_id));
+        const res = await client.v1.chain.push_transaction(SignedTransaction.from({ ...tx, signatures: [sig] }));
+        return { status: 'success', data: { transactionHash: String(res.transaction_id) } };
+      } catch (e: any) {
+        return { status: 'fail', message: e?.response?.json?.error?.details?.map((d: any) => d.message).join(',') ?? String(e?.message ?? e) };
+      }
+    }
+    ```
+    `mockWallet.ts` exposes it with `page.exposeFunction('__sign', signAndPush)` and has the
+    `addInitScript` mock's `signTransaction(tx)` return `window.__sign(tx)`; `getChainId` returns
+    `get_info().chain_id` and `connect` returns the shape below.
   - Assertions read chain tables in Node and compare the UI against on-chain truth via the
     math mirror — exact, not approximate.
 - **Mock `window.ultra` surface (what `@ultraos/wallet-sdk@0.6.1` actually calls)** — read from

@@ -83,7 +83,7 @@ docker run -dit --name ultra -p 8888:8888 -p 9876:9876 \
 docker exec ultra bash -lc ultra-smoke
 # compile: cdt-cpp inside the image (or the VS Code extension)
 # test:    ultratest2 -t <spec>   (preinstalled — no `npm i -g` needed)
-# dapp:    npm i @ultraos/wallet-sdk @wharfkit/antelope   (all public)
+# dapp:    npm i @ultraos/wallet-sdk@^0.6.1 @wharfkit/antelope@^1.0.13   (all public; keep the pins, 06 §2)
 ```
 
 > ⚠️ **Port 8888 clash.** If a nodeos is already listening on the host's `:8888` (a native
@@ -91,7 +91,8 @@ docker exec ultra bash -lc ultra-smoke
 > and the container does not start. Stop it first (`pkill -x nodeos` on the host / `docker rm -f`
 > the other container), or publish a different host port (`-p 18888:8888`) and point clients at
 > that. A failed `docker run -d --name ultra` still leaves a *Created* container named `ultra`:
-> `docker rm ultra` before retrying.
+> `docker rm ultra` before retrying. If the dapp, tests and browser all run **inside** the container,
+> no `-p` mapping is needed at all.
 
 Ships (verified in both `0.4.1-ubuntu24` = Ubuntu 24.04.5 and `0.4.1-ubuntu22` = Ubuntu 22.04.5)
 **nodeos/cleos v6.2.2-3.0.1 (Savanna; same 6.2.2 line as mainnet)**, **CDT 4.1.1** (`cdt-cpp`,
@@ -111,7 +112,8 @@ ultratest2 specs + Vue dapp from this KB and `0.4.1-ubuntu24` alone. Built + pub
 > plus **`<commit-sha>-ubuntu24`** / **`<commit-sha>-ubuntu22`**. **Pin a versioned tag**
 > (`0.4.1-ubuntu24`). **`latest` moves only by an explicit promotion** — since 2026-09-25 it points at
 > `0.4.1-ubuntu24`; the previous July-2026 build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4) stays pullable as
-> `912c1f58df838cfa29decac18f30ee8b8aee9955`. Whatever you pulled, `cat /opt/versions.json` says what's inside.
+> `912c1f58df838cfa29decac18f30ee8b8aee9955`. Whatever you pulled, `cat /opt/versions.json` gives the eosio/CDT/contracts release inputs (its
+> `ultratest` key is the legacy v1 framework, not ultratest2); `npm ls -g @ultraos/ultratest2` and `node --version` give the rest.
 >
 > **Upgrade note.** Before 2026-07-24 this image shipped **nodeos v5.0.2 (pre-Savanna)**,
 > CDT 4.0.1, Node 19 and only ultratest **v1**. If you need that older image it remains at the

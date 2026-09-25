@@ -72,6 +72,8 @@ ultratest2 --contracts-dir-path=.../build/contracts -t $PWD/e2e_setup.ts --keep-
   `--create-test <path>` (scaffold).
 - **Pipe output to a file** (`… > /tmp/spec.log 2>&1`); grep alone loses on-chain error
   detail.
+- A failed assertion ends only **that case**; later cases in the spec still run, on whatever chain
+  state the failed case left — make each case set up (or assert from) its own known state.
 - Specs need **no per-dir npm install by you** — but know the mechanism (verified in
   ultratest2 1.0.6 source + a run): the spec dir **must contain a `package.json`** (else
   `package.json not found … Use either --create-test`), and only its `ultratestPlugins` block
