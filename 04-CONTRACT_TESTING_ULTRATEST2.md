@@ -1,6 +1,6 @@
 # 04 — Contract Testing with ultratest2
 
-**Last Updated:** 2026-09-25
+**Last Updated:** 2026-09-26
 **Read this to:** test a contract against a REAL local Ultra chain. ultratest2 boots a
 native `nodeos` (Ultra Spring fork), deploys the full system-contract stack, runs your
 TypeScript specs, and (optionally) keeps the chain alive for dapp E2E.
@@ -84,7 +84,7 @@ ultratest2 --contracts-dir-path=.../build/contracts -t $PWD/e2e_setup.ts --keep-
   `node_modules/` + `package-lock.json` will appear inside your worktree (gitignore them —
   expected, don't commit them). A manual `npm install` first is harmless but never required.
   - **Public / global-install path (no source checkout):** ultratest2 is **already installed
-    globally in the dev image** (1.0.6 in `0.4.1-*`) — no `npm i -g` needed there; run it only
+    globally in the dev image** (1.0.6 in `0.4.2-*`) — no `npm i -g` needed there; run it only
     if you're installing on a host. Spec-dir `package.json`: the `00` §3 file (its
     `ultratestPlugins` block alone is enough — verified) — validated end-to-end against the
     public image with zero workarounds.
@@ -212,7 +212,10 @@ default RAM 10240 bytes — a local-test default, distinct from mainnet's ~5 KB 
 
 **Asserts:** `assert(expr, msg)`, `assertAsync(promise, msg)` (fails on throw OR falsy),
 `assertAsyncThrow(promise, substr?)` — `substr` is a case-insensitive **substring** of the
-stringified chain error, `sleep(ms)`.
+stringified chain error, `sleep(ms)`. **Always pass `substr` for auth tests** (`'missing authority'`): a
+forged action can also revert for another reason — e.g. a row billed to the victim fails with
+"cannot increase RAM usage of another account" — so a bare "it reverts" still passes after
+`require_auth` is deleted (observed in the 2026-09-26 clean-room).
 
 **Best practice from the shipped suites:** compute expected values in a **BigInt mirror**
 of the contract math and assert EXACT equality against table reads (see

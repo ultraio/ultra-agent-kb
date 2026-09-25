@@ -78,7 +78,7 @@ only for native C++ tests; a new **test-helper** contract registers in
 **Standalone (`cdt-cpp`) — fine for a single-file contract:**
 `cdt-cpp -o hello.wasm hello.cpp` emits both `hello.wasm` and `hello.abi`
 (add `-I include` as needed). This is the official-docs path (VS Code extension wraps it).
-With ricardian clauses and an explicit contract name (verified with the `0.4.1` image's CDT 4.1.1):
+With ricardian clauses and an explicit contract name (verified with the `0.4.1` and `0.4.2` images' CDT 4.1.1):
 
 ```bash
 mkdir -p build/mycontract      # cdt-cpp does NOT create the -o dir (wasm-ld: failed to open …)
