@@ -1,6 +1,6 @@
 # 02 — Development Environment
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-09-25
 **Read this to:** know exactly what toolchain exists (and where it is on the internal
 reference machine), and how to stand it up elsewhere. **No private access?** Use the
 public bootstrap in `00` §3 (quay.io devtools image + npm packages) instead of §1.
@@ -13,7 +13,7 @@ public bootstrap in `00` §3 (quay.io devtools image + npm packages) instead of 
 | --- | --- | --- | --- |
 | **CDT** (`cdt-cpp`) | 4.1.1 | `/usr/local/bin/cdt-cpp`; build tree `/home/adam/spring/eosio.cdt/build` | compile C++ → wasm/abi |
 | **nodeos / cleos** | v6.2.2-3.0.0 (Ultra Spring fork) | `/usr/local/bin/{nodeos,cleos}` (byte-identical to `/home/adam/spring/spring/build/bin/nodeos`) | local chain + CLI |
-| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` ≥ **1.0.4**; internal machine runs a source symlink) | `~/.nvm/versions/node/v22.21.0/bin/ultratest2` → symlink to `/home/adam/ultra.repos/ultratest2` | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
+| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` = **1.0.6**, also preinstalled in the `0.4.1-*` devtools image; internal machine runs a source symlink) | `~/.nvm/versions/node/v22.21.0/bin/ultratest2` → symlink to `/home/adam/ultra.repos/ultratest2` | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
 | **Node.js** | v22.21.0 (nvm) | `~/.nvm` | ultratest2, dapps |
 | Spring source | `/home/adam/spring/spring` (also `/home/adam/spring/eosio`) | | protocol reference |
 | eosio.contracts | `/home/adam/spring/eosio.contracts` (branch `master`) | | system contracts + `build.sh` |
@@ -29,7 +29,7 @@ unrelated WIP; **don't build your work there** — make your own worktree (`03` 
 
 ```bash
 cdt-cpp --version                 # cdt-cpp version 4.1.1
-nodeos --version                  # v6.2.2-3.0.0
+nodeos --version                  # v6.2.2-3.0.0 here; v6.2.2-3.0.1 in the 0.4.1-* image
 ultratest2 --version              # banner (NEVER run `ultratest2 --help` — it hangs)
 ls /home/adam/spring/eosio.contracts-defi/build/contracts/ultra.dex/   # prebuilt exemplar wasm/abi
 ```
@@ -45,8 +45,10 @@ A leftover `nodeos` from a previous session blocks new test chains:
    the devtools image, `00` §3); install `nodeos`/`cleos`
    into `/usr/local/bin` (ultratest2 execs bare `nodeos` from `$PATH`).
 3. **Node 20+ via nvm**, then install ultratest2 globally (`npm i -g @ultraos/ultratest2`
-   or clone `ultra.repos/ultratest2` and link). Specs need **no per-directory
-   `npm install`** — test dirs reference the ultratest2 checkout via relative paths.
+   or clone `ultra.repos/ultratest2` and link). Specs need **no manual per-directory
+   `npm install`** — each spec dir needs a `package.json` (its `ultratestPlugins` block is the
+   only required part); the runner rewrites its dependencies to relative paths into the
+   ultratest2 install and npm-installs the dir itself on first run (`04` §2, `00` §3).
 4. **eosio.contracts** — clone `github.com/ultraio/eosio.contracts`; `./build.sh -c
    <cdt-build-dir>` once to produce `build/contracts/*` (system contracts are needed by the
    test chain bootstrap).
