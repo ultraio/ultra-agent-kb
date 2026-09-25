@@ -36,7 +36,9 @@ not reproducible from the public toolchain.)
 
 - `ultratest2` = global npm CLI (`@ultraos/ultratest2`), TypeScript executed directly via
   `tsx` — no build step. Specs are discovered by the `*.spec.ts` suffix.
-- On start it **pkills any running nodeos**, writes genesis/config from its
+- On start it pkills any running nodeos **only when a Docker socket is reachable** (a host run);
+  inside the devtools image it skips that and stops only its own nodeos between specs, so
+  `pkill -x nodeos` a leftover yourself. It then writes genesis/config from its
   `src/configurations/`, boots a genesis node, then your plugin stack bootstraps the chain.
 - **Ports:** HTTP/RPC starts at **8888 — nodeos's default HTTP port** (`http://127.0.0.1:8888`,
   what dapps/curl/`VITE_NODE_URL` point at), P2P at 9876. If a port is taken the runner silently

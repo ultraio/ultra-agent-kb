@@ -162,9 +162,12 @@ Plus `ricardian/tipjar.contracts.md.in` (a clause for `withdraw`) and the standa
 > the public toolchain, **skip to the equivalent below** — it produces the same artifacts:
 >
 > ```bash
-> # in the public dev image (00 §3); the Tip Jar also ships at /opt/templates/tipjar
+> # in the public dev image (00 §3), from the contract source dir; the Tip Jar also ships at
+> # /opt/templates/tipjar. /work = your project dir (e.g. the /opt/ultra_workdir mount of 00 §3)
+> mkdir -p /work/build/tipjar     # cdt-cpp does not create the -o dir (03 §2)
 > cdt-cpp -abigen -I include -o /work/build/tipjar/tipjar.wasm src/tipjar.cpp
 > # with your own ricardian clauses (03 §2): add  -contract tipjar -R ricardian
+> #   (-R reads ricardian/tipjar.contracts.md — rename the template's .md.in, 03 §1)
 > ultratest2 --contracts-dir-path=/opt/eosio.contracts/build/contracts \
 >   -t /work/tipjar/tipjar.spec.ts
 > ```

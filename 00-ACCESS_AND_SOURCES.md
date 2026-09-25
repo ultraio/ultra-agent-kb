@@ -90,7 +90,8 @@ docker exec ultra bash -lc ultra-smoke
 > install, a leftover test chain, another container), `docker run -p 8888:8888` fails to bind
 > and the container does not start. Stop it first (`pkill -x nodeos` on the host / `docker rm -f`
 > the other container), or publish a different host port (`-p 18888:8888`) and point clients at
-> that.
+> that. A failed `docker run -d --name ultra` still leaves a *Created* container named `ultra`:
+> `docker rm ultra` before retrying.
 
 Ships (verified in both `0.4.1-ubuntu24` = Ubuntu 24.04.5 and `0.4.1-ubuntu22` = Ubuntu 22.04.5)
 **nodeos/cleos v6.2.2-3.0.1 (Savanna; same 6.2.2 line as mainnet)**, **CDT 4.1.1** (`cdt-cpp`,
@@ -114,13 +115,13 @@ ultratest2 specs + Vue dapp from this KB and `0.4.1-ubuntu24` alone. Built + pub
 >
 > **Upgrade note.** Before 2026-07-24 this image shipped **nodeos v5.0.2 (pre-Savanna)**,
 > CDT 4.0.1, Node 19 and only ultratest **v1**. If you need that older image it remains at the
-> digest tag **`618e324fc60de62b6e65d757340c45daadbbf868`** (and `0.2.0`). The `:0.3.1` tag pins
+> digest tag **`618e324fc60de62b6e65d757340c45daadbbf868`** (`0.2.0` is an even older, separate build). The `:0.3.1` tag pins
 > the July-2026 Savanna build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4); `0.4.1-*` supersedes it.
 
 **Validated 2026-07-23** (full Tip Jar flow, docker-only, host toolchain untouched), then
 **re-validated the same day, from published npm, with ZERO workarounds** after the tooling
 fixes below shipped: compile with the image's `cdt-cpp` ✅; `npm i -g @ultraos/ultratest2`
-runs the whole spec suite ✅ (6/6 green) against the image's nodeos + its
+(now preinstalled in the image — skip it there) runs the whole spec suite ✅ (6/6 green) against the image's nodeos + its
 `/opt/eosio.contracts/build/contracts`. This requires **`@ultraos/ultratest2 ≥ 1.0.4`** and
 **`@ultraos/ultra-signer-lib ≥ 1.7.5`** (both published 2026-07-23); a fresh `npm i -g`
 resolves both automatically.
