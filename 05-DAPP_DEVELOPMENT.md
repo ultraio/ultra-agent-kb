@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-09-25
 **Read this to:** build the web frontend for an Ultra contract the way the shipped dapps do.
-Exemplars: `ultra-dex-dapp` (the reference), `ultra-lend-dapp`,
+Exemplars `[internal]`: `ultraio/ultra-dex-dapp` (the reference), `ultra-lend-dapp`,
 `ultra-farm-dapp` (Vue); `ultra-bridge-dapp` (React, production at bridge.ultra.io).
 Wallet specifics live in `06`; this doc is the app around it.
 

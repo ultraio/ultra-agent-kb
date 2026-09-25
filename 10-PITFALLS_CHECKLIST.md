@@ -20,7 +20,7 @@ The one-page "why is this failing" list. Each item links to the doc with the ful
 - [ ] New contract registered in `build.sh` contract_list + `contracts/CMakeLists.txt`
       (test helpers → `ultratests/CMakeLists.txt`).
 - [ ] Work in your OWN `eosio.contracts` worktree `[internal]` — DeFi exemplars are in
-      `eosio.contracts-defi` (NOT the main checkout).
+      the `eosio.contracts-defi` worktree (NOT the main checkout).
 
 ## Security (`12`) — before shipping anything that moves value
 

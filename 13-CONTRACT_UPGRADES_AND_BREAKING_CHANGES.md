@@ -391,7 +391,7 @@ Changing a deployed table?
 
 ---
 
-**Primary sources (all under `eosio.contracts/`):**
+**Primary sources (all in `ultraio/eosio.contracts` `[internal]`):**
 - Versioning + `migration` singleton + version constant:
   `contracts/eosio.nft.ft/include/eosio.nft.ft/nft.common.hpp:104-184` (structs `:227-603`).
 - Pattern A (bulk + on-the-fly + activation): `contracts/eosio.nft.ft/src/eosio.nft.ft.cpp:1780-1932`.

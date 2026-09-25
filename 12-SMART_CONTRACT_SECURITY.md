@@ -4,8 +4,8 @@
 **Read this to:** design and review an Ultra (Antelope) contract so it can't be drained,
 spoofed, or silently corrupted. This is the consolidated security home — `03` teaches you to
 *write* a contract, this doc teaches you not to get robbed. Every rule below is grounded in
-Ultra's live system contracts (`eosio.contracts/contracts/`) or the Spring
-protocol source (`eosio/libraries/chain/`). When a rule cites `file:line`,
+Ultra's live system contracts (`ultraio/eosio.contracts` `contracts/`) or the Spring
+protocol source (`ultraio/eosio` `libraries/chain/`). When a rule cites `file:line`,
 that is verified behavior, not folklore.
 
 > **The three questions to ask about every action, before writing its body:**
