@@ -13,7 +13,7 @@ internal-only references with `[internal]`.
 | Resource | Where | Notes |
 | --- | --- | --- |
 | Official developer docs | `https://developers.ultra.io` (source: `github.com/ultraio/docs-blockchain`, public) | tutorials, chain/contract reference, endpoints |
-| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:0.4.1-ubuntu24` (public; **pin this tag** — Ubuntu 22.04 twin: `:0.4.1-ubuntu22`; `latest` is an older build, see §3) | **the public way to get nodeos + cleos + keosd**; also ships CDT (`cdt-cpp`), **built system contracts at `/opt/eosio.contracts/build/contracts`**, **`@ultraos/ultratest2` preinstalled**, `/opt/templates/tipjar`, and `ultra-smoke`. **0.4.1: nodeos v6.2.2-3.0.1 (Savanna), CDT 4.1.1, eosio.contracts 5.2.1, Node 22.11, ultratest2 1.0.6** — see §3. (Pre-Savanna build preserved at tag `618e324f…`.) Binaries are NOT downloadable individually. |
+| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:0.4.1-ubuntu24` (public; **pin this tag** — Ubuntu 22.04 twin: `:0.4.1-ubuntu22`; `latest` = `0.4.1-ubuntu24` since 2026-09-25, see §3) | **the public way to get nodeos + cleos + keosd**; also ships CDT (`cdt-cpp`), **built system contracts at `/opt/eosio.contracts/build/contracts`**, **`@ultraos/ultratest2` preinstalled**, `/opt/templates/tipjar`, and `ultra-smoke`. **0.4.1: nodeos v6.2.2-3.0.1 (Savanna), CDT 4.1.1, eosio.contracts 5.2.1, Node 22.11, ultratest2 1.0.6** — see §3. (Pre-Savanna build preserved at tag `618e324f…`.) Binaries are NOT downloadable individually. |
 | Other public images (quay.io/ultra.io) | `eosio-docker-starter`, `eosio-cdt-docker-starter`, `3rdparty-dfuse`, `firehose-antelope` | chain/CDT starters, dfuse/firehose |
 | `@ultraos/ultratest2` | npm (public) | the current TS test framework (`04`) — code installs publicly |
 | `@ultraio/ultratest` (v1) | devtools image only (`/opt/ultratest`, package 1.1.0) — **not on npm** | the legacy v1 framework; use ultratest2. Not the same thing as npm's `@ultraos/ultratest` (an unrelated 0.0.x package) or the `@ultraos/ultratest` alias a spec-dir `package.json` maps to ultratest2's `src` (§3) |
@@ -108,9 +108,9 @@ ultratest2 specs + Vue dapp from this KB and `0.4.1-ubuntu24` alone. Built + pub
 > **Tag scheme.** Releases are published as immutable, distro-qualified tags:
 > **`<version>-ubuntu24`** (primary, Ubuntu 24.04) and **`<version>-ubuntu22`** (Ubuntu 22.04),
 > plus **`<commit-sha>-ubuntu24`** / **`<commit-sha>-ubuntu22`**. **Pin a versioned tag**
-> (`0.4.1-ubuntu24`). **`latest` is not moved automatically** — it still points at the older
-> July-2026 build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4) until a release is promoted, so don't
-> assume `latest` = 0.4.1. Whatever you pulled, `cat /opt/versions.json` says what's inside.
+> (`0.4.1-ubuntu24`). **`latest` moves only by an explicit promotion** — since 2026-09-25 it points at
+> `0.4.1-ubuntu24`; the previous July-2026 build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4) stays pullable as
+> `912c1f58df838cfa29decac18f30ee8b8aee9955`. Whatever you pulled, `cat /opt/versions.json` says what's inside.
 >
 > **Upgrade note.** Before 2026-07-24 this image shipped **nodeos v5.0.2 (pre-Savanna)**,
 > CDT 4.0.1, Node 19 and only ultratest **v1**. If you need that older image it remains at the
