@@ -35,7 +35,8 @@ ls /home/adam/spring/eosio.contracts-defi/build/contracts/ultra.dex/   # prebuil
 ```
 
 A leftover `nodeos` from a previous session blocks new test chains:
-`pkill -x nodeos` first if port `:8888` is busy (ultratest2 also pkills on start).
+`pkill -x nodeos` first if port `:8888` is busy (ultratest2 pkills on start only when Docker is
+reachable, i.e. on a host run — never inside the devtools image).
 
 ## 3. Standing it up from scratch (another machine)
 
