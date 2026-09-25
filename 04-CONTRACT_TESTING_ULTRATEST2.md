@@ -1,6 +1,6 @@
 # 04 — Contract Testing with ultratest2
 
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-09-25
 **Read this to:** test a contract against a REAL local Ultra chain. ultratest2 boots a
 native `nodeos` (Ultra Spring fork), deploys the full system-contract stack, runs your
 TypeScript specs, and (optionally) keeps the chain alive for dapp E2E.
@@ -37,8 +37,12 @@ not reproducible from the public toolchain.)
 - `ultratest2` = global npm CLI (`@ultraos/ultratest2`), TypeScript executed directly via
   `tsx` — no build step. Specs are discovered by the `*.spec.ts` suffix.
 - On start it **pkills any running nodeos**, writes genesis/config from its
-  `src/configurations/`, boots a genesis node on random open ports (the e2e_setup pattern
-  pins RPC to `:8888`), then your plugin stack bootstraps the chain.
+  `src/configurations/`, boots a genesis node, then your plugin stack bootstraps the chain.
+- **Ports:** HTTP/RPC starts at **8888 — nodeos's default HTTP port** (`http://127.0.0.1:8888`,
+  what dapps/curl/`VITE_NODE_URL` point at), P2P at 9876. If a port is taken the runner silently
+  takes the **next free one** (8889, …), so a stray nodeos it can't kill (another container, a
+  host process seen from inside Docker) means your client on `:8888` talks to the wrong chain.
+  In Docker, `-p 8888:8888` itself fails if the host already uses 8888 (`00` §3).
 - Default nodeos args include `contracts-console`, CORS `*`, `delete-all-blocks`, and
   **`enable-account-queries=true`** (so `get_accounts_by_authorizers` works — needed by
   wallets; if you ever boot nodeos by hand, add it yourself).
@@ -66,18 +70,20 @@ ultratest2 --contracts-dir-path=.../build/contracts -t $PWD/e2e_setup.ts --keep-
   `--create-test <path>` (scaffold).
 - **Pipe output to a file** (`… > /tmp/spec.log 2>&1`); grep alone loses on-chain error
   detail.
-- Specs need **no per-dir npm install by you** — but know the mechanism: the test dir's
-  `package.json` links the ultratest2 checkout via relative paths (copy an existing test
-  dir's `package.json` when creating a new suite; the relative depth assumes the worktree
-  sits at `<name>`), and **the runner itself npm-installs into the spec
-  dir on first run**. Consequences: the first run needs registry access (VPN trap), and an
-  untracked `node_modules/` + `package-lock.json` will appear inside your worktree
-  (gitignored — expected, don't commit them).
+- Specs need **no per-dir npm install by you** — but know the mechanism (verified in
+  ultratest2 1.0.6 source + a run): the spec dir **must contain a `package.json`** (else
+  `package.json not found … Use either --create-test`), and only its `ultratestPlugins` block
+  is required. On every run the runner **rewrites `dependencies`** — `@ultraos/ultratest` and
+  each listed native plugin → relative paths into whichever ultratest2 install is running —
+  and **npm-installs into the spec dir itself** when it rewrote the file or `node_modules/` is
+  missing. Consequences: the first run needs registry access (VPN trap), and an untracked
+  `node_modules/` + `package-lock.json` will appear inside your worktree (gitignore them —
+  expected, don't commit them). A manual `npm install` first is harmless but never required.
   - **Public / global-install path (no source checkout):** ultratest2 is **already installed
-    globally in the dev image** (≥ 1.0.4) — no `npm i -g` needed there; run it only if you're
-    installing on a host. Either way the spec `package.json` links the plugins via `file:`
-    paths into the global install (`file:$(npm root -g)/@ultraos/ultratest2/src/...`). Canonical
-    shape in `00` §3 — validated end-to-end against the public image with zero workarounds.
+    globally in the dev image** (1.0.6 in `0.4.1-*`) — no `npm i -g` needed there; run it only
+    if you're installing on a host. Spec-dir `package.json`: the `00` §3 file (its
+    `ultratestPlugins` block alone is enough — verified) — validated end-to-end against the
+    public image with zero workarounds.
 
 ## 3. Spec anatomy
 
@@ -158,7 +164,7 @@ default RAM 10240 bytes — a local-test default, distinct from mainnet's ~5 KB 
   - **Helper:** `ultraAPI.updateAuth(name, permission, parent, threshold, keys, accounts)` —
     ⚠️ it lives on `ultraAPI` **directly, not `ultraAPI.system`**, and takes **positional** args
     (`threshold: number`, `keys: {key,weight}[]`, `accounts: {weight,permission}[]`), **not a
-    single `auth` object**. Verified against the installed `@ultraos/ultratest2@1.0.4`; the older
+    single `auth` object**. Verified against `@ultraos/ultratest2@1.0.4` (unchanged in 1.0.6); the older
     `ultraAPI.system.updateAuth(…, auth)` form is wrong and throws *"not a function"*.
   - **Simplest** when you don't need a *specific* actor: don't re-key — sign external
     transactions as **`eosio`**, which already holds the dev key (`04` §5).
@@ -172,7 +178,19 @@ default RAM 10240 bytes — a local-test default, distinct from mainnet's ~5 KB 
   `dirPath` is resolved relative to the **spec file's own directory**; when in doubt pass an
   **absolute** path (e.g. `/opt/eosio.contracts/build/contracts/x/` or your `/work/build/x/`).
 - `getTableRows<T>(code, scope, table, limit?, show_payer?, lower_bound?, index_position?,
-  key_type?)`, `getTableByScope`.
+  key_type?)`, `getTableByScope`. Defaults: `limit` 1000, `index_position` `'primary'`. There is
+  **no `upper_bound`** parameter. **Secondary index:** `index_position` `2` (or `'secondary'`) =
+  the first `indexed_by`, `3` = the second, …; a non-primary index **requires `key_type`**
+  (`'name'`, `'i64'`, `'i128'`, `'sha256'`, …) or it throws. Verified in 1.0.6:
+  ```ts
+  // table items.a, indexed_by<"byowner"> (name) then <"byamount"> (uint64)
+  const byOwner = await systemAPI.getTableRows<Item>('idxdemo', 'idxdemo', 'items.a',
+    100, false, 'bob', 2, 'name');      // rows ordered by owner, starting at 'bob'
+  const bigOnes = await systemAPI.getTableRows<Item>('idxdemo', 'idxdemo', 'items.a',
+    100, false, 50, 3, 'i64');          // amount >= 50
+  // lower_bound only — results run PAST 'bob' (e.g. 'carol' rows): filter the tail yourself
+  const bobs = byOwner.rows.filter((r) => r.owner === 'bob');
+  ```
 
 **Reads (typed):** `ultra.api.api.contract('<code>').getTable<T>('<table>', '<scope>')`
 (WharfKit under the hood).

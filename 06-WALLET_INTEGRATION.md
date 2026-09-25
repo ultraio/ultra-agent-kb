@@ -1,6 +1,6 @@
 # 06 — Wallet Integration (`@ultraos/wallet-sdk`)
 
-**Last Updated:** 2026-09-03
+**Last Updated:** 2026-09-25
 **Read this to:** connect and transact through both the Ultra Wallet browser extension and
 the hosted Web Wallet without treating their different capability models as interchangeable.
 The public npm package plus this document are sufficient; a dapp never needs wallet source,
@@ -319,7 +319,8 @@ Tests must prove provider branching, not merely transaction business logic:
 
 1. **Unit:** extension present → extension SDK; absent → Web SDK bound to selected environment.
 2. **Extension integration mock:** injected `window.ultra`; connect, live account/network queries,
-   events, signing, disconnect, non-success envelopes and thrown errors.
+   events, signing, disconnect, non-success envelopes and thrown errors. The exact surface the
+   SDK calls (incl. `getChainId` before `connect`, the `postMessage` event shape) is in `05` §6.
 3. **Web integration mock:** no `window.ultra`; popup `ready`/JSON-RPC exchange, legacy connect
    identity, `getChainId`, sign success/decline, popup blocked/closed, timeout, and serialization.
    Assert no extension-only method is called.
