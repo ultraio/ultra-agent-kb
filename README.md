@@ -9,8 +9,8 @@ re-discovering the platform from scratch.
 **How to use this KB:** read `01` once (platform mental model), then follow the task router
 below. **If you lack Ultra-internal access, read `00` first** — it maps every referenced
 repo/tool to its public equivalent (npm packages, quay.io images, developers.ultra.io);
-references into private material are tagged `[internal]` throughout. Every doc is self-contained, states exact commands, and cites source files in the
-sibling repos on this machine. When a doc conflicts with code, the code wins — fix the doc.
+references into private material are tagged `[internal]` throughout. Every doc is self-contained, states exact commands, and cites source files by
+repo-relative path in Ultra's source repos. When a doc conflicts with code, the code wins — fix the doc.
 
 ---
 
@@ -18,7 +18,7 @@ sibling repos on this machine. When a doc conflicts with code, the code wins —
 
 1. **Feed the agent this KB**: *"Read `README.md` in ultra-agent-kb, then: build me a dapp
    that does X."* The router below tells it what to read for each phase.
-2. **Bootstrap tooling** — internal machine: `02` §1 (native toolchain). Public/fresh
+2. **Bootstrap tooling** — with private repo access: `02` §1 (native toolchain). Public/fresh
    machine: `00` §3 (docker image + npm; no private repos, no compiling from source).
    **The only host prerequisite for the public path is a working Docker daemon — verify
    `docker info` FIRST. If it fails, Tier 2 (contract compile + local chain) cannot run on
@@ -63,7 +63,7 @@ dev loop needs is in `00`'s matrix.
   (eosio.nft.ft), system-contract inventory, the oracle, governance, and every
   Ultra-vs-vanilla-EOSIO difference that changes how you build.
 - **`02-DEVELOPMENT_ENVIRONMENT.md`** — the toolchain (CDT, Spring/nodeos, ultratest2,
-  node/npm), where it is installed on this machine, versions, and how to stand it up from
+  node/npm), where it is installed in Ultra's internal setup, versions, and how to stand it up from
   scratch.
 - **`03-SMART_CONTRACT_DEVELOPMENT.md`** — contract project layout, a minimal working
   contract, actions/tables/ABI, the transfer+memo-dispatch pattern, inline actions,
@@ -115,9 +115,8 @@ This repo is deliberately **standalone**: it contains no credentials and no sens
 operational data, so it can be shared more widely than Ultra's internal docs. Deep-dive
 references into Ultra-internal material (the private `ultraOS-doc` repo, private source
 repos) are tagged `[internal]` and are never load-bearing — every doc carries the facts it
-needs inline, and `00` gives public alternatives. Absolute `/home/...` paths describe the
-internal reference dev machine the KB was validated on; public readers substitute the
-`00` §3 bootstrap. Content was synthesized from developers.ultra.io, the Ultra source repos, and
+needs inline, and `00` gives public alternatives. Repo-relative paths (`eosio.contracts/...`) refer to
+checkouts of private Ultra repos; public readers substitute the `00` §3 bootstrap. Content was synthesized from developers.ultra.io, the Ultra source repos, and
 shipped wallet/dapp codebases. The contract/dapp/local-chain path was **clean-room-validated**
 (2026-07-23) by an agent that built the Tip Jar stack (`09`) from this KB alone. On 2026-09-03 its
 wallet layer was updated against the dual-provider patterns in Ultra Bridge and Ultra Tool Kit.

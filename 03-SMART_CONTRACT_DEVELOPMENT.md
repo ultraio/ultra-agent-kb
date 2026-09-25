@@ -3,7 +3,7 @@
 **Last Updated:** 2026-09-25
 **Read this to:** write, structure, and build an Ultra (Antelope) C++ contract the way the
 shipped production suite does. The best living exemplars are the five DeFi contracts in
-`/home/adam/spring/eosio.contracts-defi/contracts/` (`ultra.dex` is the reference).
+`eosio.contracts-defi/contracts/` `[internal]` (`ultra.dex` is the reference).
 
 ---
 
@@ -60,9 +60,9 @@ base32 — pick names that fit (`removeliquid`, not `removeliquidity`).
 `eosio.contracts` (the repo is shared by multiple agents):
 
 ```bash
-cd /home/adam/spring/eosio.contracts
-git worktree add /home/adam/spring/eosio.contracts-<yourtask> -b <your-branch> feature/ultra-dex-amm
-cd /home/adam/spring/eosio.contracts-<yourtask>
+cd eosio.contracts
+git worktree add ../eosio.contracts-<yourtask> -b <your-branch> feature/ultra-dex-amm
+cd ../eosio.contracts-<yourtask>
 # add contracts/<name>/{include,src,CMakeLists.txt}
 # REGISTER IT: add <name> to build.sh's contract_list AND contracts/CMakeLists.txt
 ./build.sh -c ../eosio.cdt/build -C <name>     # → build/contracts/<name>/<name>.{wasm,abi}

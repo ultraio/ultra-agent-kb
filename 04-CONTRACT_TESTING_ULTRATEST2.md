@@ -4,7 +4,7 @@
 **Read this to:** test a contract against a REAL local Ultra chain. ultratest2 boots a
 native `nodeos` (Ultra Spring fork), deploys the full system-contract stack, runs your
 TypeScript specs, and (optionally) keeps the chain alive for dapp E2E.
-Living exemplars: `/home/adam/spring/eosio.contracts-defi/ultratests/` (52+ specs).
+Living exemplars `[internal]`: `eosio.contracts-defi/ultratests/` (52+ specs).
 
 ---
 
@@ -54,8 +54,8 @@ not reproducible from the public toolchain.)
 
 ```bash
 # one spec
-ultratest2 --contracts-dir-path=/home/adam/spring/eosio.contracts-defi/build/contracts \
-  -t /home/adam/spring/eosio.contracts-defi/ultratests/ultra.dex/swap_v0.spec.ts
+ultratest2 --contracts-dir-path="$PWD/build/contracts" \
+  -t "$PWD/ultratests/ultra.dex/swap_v0.spec.ts"          # from an eosio.contracts-defi checkout
 
 # a whole directory (recurses, skips node_modules)
 ultratest2 --contracts-dir-path=.../build/contracts -t .../ultratests/ultra.dex

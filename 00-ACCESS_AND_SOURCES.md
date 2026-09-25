@@ -185,9 +185,8 @@ plain-Node import fails with `ERR_UNSUPPORTED_DIR_IMPORT` — upgrade rather tha
 
 ## 4. Reading this KB without internal access
 
-- Absolute paths under `/home/adam/...` describe the **internal reference machine** — on
-  it, they are exact; elsewhere, treat them as "the private checkout of X" and use the
-  public alternative above.
+- Repo-relative paths such as `eosio.contracts/...` or `eosio.contracts-defi/...` mean "a checkout
+  (or worktree) of the private `ultraio/<repo>`" — without access, use the public alternative above.
 - References tagged `[internal]` point at private Ultra repos/docs; each is accompanied by
   enough inline context that no doc *depends* on following one.
 - Everything else (chain IDs, endpoints, account model, RAM policy, wallet API,

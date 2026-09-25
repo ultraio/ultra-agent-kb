@@ -1,26 +1,29 @@
 # 02 — Development Environment
 
 **Last Updated:** 2026-09-25
-**Read this to:** know exactly what toolchain exists (and where it is on the internal
-reference machine), and how to stand it up elsewhere. **No private access?** Use the
+**Read this to:** know exactly what toolchain exists (and where it lives in Ultra's
+internal setup), and how to stand it up elsewhere. **No private access?** Use the
 public bootstrap in `00` §3 (quay.io devtools image + npm packages) instead of §1.
 
 ---
 
-## 1. The toolchain, verified on this machine
+## 1. The internal toolchain (Ultra's own dev setup)
+
+Repository paths below are relative to wherever you keep your checkouts (e.g. `eosio.contracts/`
+= a checkout of the private `ultraio/eosio.contracts`).
 
 | Tool | Version | Location | Purpose |
 | --- | --- | --- | --- |
-| **CDT** (`cdt-cpp`) | 4.1.1 | `/usr/local/bin/cdt-cpp`; build tree `/home/adam/spring/eosio.cdt/build` | compile C++ → wasm/abi |
-| **nodeos / cleos** | v6.2.2-3.0.0 (Ultra Spring fork) | `/usr/local/bin/{nodeos,cleos}` (byte-identical to `/home/adam/spring/spring/build/bin/nodeos`) | local chain + CLI |
-| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` = **1.0.6**, also preinstalled in the `0.4.1-*` devtools image; internal machine runs a source symlink) | `~/.nvm/versions/node/v22.21.0/bin/ultratest2` → symlink to `/home/adam/ultra.repos/ultratest2` | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
-| **Node.js** | v22.21.0 (nvm) | `~/.nvm` | ultratest2, dapps |
-| Spring source | `/home/adam/spring/spring` (also `/home/adam/spring/eosio`) | | protocol reference |
-| eosio.contracts | `/home/adam/spring/eosio.contracts` (branch `master`) | | system contracts + `build.sh` |
-| **eosio.contracts-defi** | `/home/adam/spring/eosio.contracts-defi` — **git worktree of the same repo**, branch `feature/ultra-dex-amm` | | the DeFi suite: the best real contract+test exemplars |
+| **CDT** (`cdt-cpp`) | 4.1.1 | `/usr/local/bin/cdt-cpp` (installed package; or an `eosio.cdt/build` source tree) | compile C++ → wasm/abi |
+| **nodeos / cleos** | v6.2.2-3.0.0 (Ultra Spring fork) | `/usr/local/bin/{nodeos,cleos}` (installed package, or built from `ultraio/eosio`) | local chain + CLI |
+| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` = **1.0.6**, also preinstalled in the `0.4.1-*` devtools image; internal setups may `npm link` an `ultraio/ultratest2` checkout instead) | global npm bin (`npm root -g`) | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
+| **Node.js** | v22 | any install (nvm works) | ultratest2, dapps |
+| Spring source | `eosio/` (Ultra's Spring fork, `ultraio/eosio`) | | protocol reference |
+| eosio.contracts | `eosio.contracts/` (branch `master`) | | system contracts + `build.sh` |
+| **eosio.contracts-defi** | `eosio.contracts-defi/` — **git worktree of the same repo**, branch `feature/ultra-dex-amm` | | the DeFi suite: the best real contract+test exemplars |
 
 ⚠️ **Worktree trap** `[internal]`**:** older docs (ultraOS-doc `ultra-defi/AGENT_CONTEXT.md`,
-`DEMO_AND_LAUNCH_GUIDE.md`) cite `/home/adam/spring/eosio.contracts/...` paths for the DeFi
+`DEMO_AND_LAUNCH_GUIDE.md`) cite `eosio.contracts/...` paths for the DeFi
 contracts. Since 2026-06-16 those live in the **`eosio.contracts-defi` worktree** —
 substitute the path in every copied command. The main checkout is on `master` and carries
 unrelated WIP; **don't build your work there** — make your own worktree (`03` §2).
@@ -31,7 +34,7 @@ unrelated WIP; **don't build your work there** — make your own worktree (`03` 
 cdt-cpp --version                 # cdt-cpp version 4.1.1
 nodeos --version                  # v6.2.2-3.0.0 here; v6.2.2-3.0.1 in the 0.4.1-* image
 ultratest2 --version              # banner (NEVER run `ultratest2 --help` — it hangs)
-ls /home/adam/spring/eosio.contracts-defi/build/contracts/ultra.dex/   # prebuilt exemplar wasm/abi
+ls eosio.contracts-defi/build/contracts/ultra.dex/   # prebuilt exemplar wasm/abi
 ```
 
 A leftover `nodeos` from a previous session blocks new test chains:
@@ -61,7 +64,7 @@ reachable, i.e. on a host run — never inside the devtools image).
 ## 3b. Cross-platform / non-Linux hosts (read if you're not on the dev image)
 
 Everything in this KB assumes the **Linux dev image** — bash, POSIX tools (`grep`, `lsof`,
-`pkill`), `/home/adam/...` paths. The Ultra toolchain and the dapp stack also run on macOS and
+`pkill`), Linux paths. The Ultra toolchain and the dapp stack also run on macOS and
 Windows, but two *host* traps recur when an agent or teammate works off-image. Both are generic OS
 facts, not Ultra-specific — call them out in any runbook a mixed-OS team shares:
 
@@ -85,10 +88,10 @@ facts, not Ultra-specific — call them out in any runbook a mixed-OS team share
 
 ## 4. Dapp-side toolchain
 
-- Vite + Vue 3 + TypeScript (exemplars: `/home/adam/ultra.repos/ultra-dex-dapp`,
+- Vite + Vue 3 + TypeScript (exemplars `[internal]`: `ultraio/ultra-dex-dapp`,
   `ultra-lend-dapp`, `ultra-farm-dapp`; React variant: `ultra-bridge-dapp`).
 - `@ultraos/wallet-sdk` (published **0.6.1** — pin `^0.6.1`, see `05` §1) + `@wharfkit/antelope` (^1.0.13).
 - Playwright for E2E; vitest for unit tests.
 - npm registry access required (a corporate VPN can block npm).
 - For real-extension QA you need Chrome + the extension built from
-  `/home/adam/ultra.repos/web-app` (`06` §7).
+  the private `ultraio/web-app` (`06` §7).

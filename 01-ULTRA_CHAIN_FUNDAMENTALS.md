@@ -3,7 +3,7 @@
 **Last Updated:** 2026-08-04
 **Read this once, first.** It is the platform mental model: what Ultra is, how it differs
 from vanilla EOSIO/Antelope, and the facts every contract and dapp decision rests on.
-Primary sources: `/home/adam/ultra.repos/docs-blockchain` (source of developers.ultra.io),
+Primary sources: [`ultraio/docs-blockchain`](https://github.com/ultraio/docs-blockchain) (source of developers.ultra.io),
 the protocol/system-contract source `[internal]`, and Ultra's internal chain-primitives
 research `[internal: ultraOS-doc ultra-dex/07-ULTRA_CHAIN_PRIMITIVES.md]`.
 Public readers: everything load-bearing here is verifiable at developers.ultra.io.
@@ -155,7 +155,7 @@ required on every msig proposal**. `eosio.wrap` + 2/3 BPs can freeze any account
 contract this matters twice: (1) system-level changes go through the producer msig; (2) the
 shipped-contract convention is to hand admin to `eosio` post-launch (`08` §5).
 
-Source layout `[internal]`: system contracts at `/home/adam/spring/eosio.contracts/contracts/`
+Source layout `[internal]`: system contracts in `ultraio/eosio.contracts` under `contracts/`
 (`eosio.system`'s Ultra logic in `src/ultra.system.cpp`); repo is private — behavior is
 documented publicly under developers.ultra.io → blockchain/contracts.
 

@@ -13,8 +13,8 @@ hosted Web Wallet popup. Use `06` §9's full gate before making a production dua
 
 | Piece | Location |
 | --- | --- |
-| Contract + specs | `/home/adam/spring/eosio.contracts-tipjar` `[internal]` — worktree of the private `eosio.contracts`, branch `example/tipjar` (local commit, never pushed) |
-| Dapp | `/home/adam/ultra.repos/ultra-tipjar-dapp` `[internal]` (local-only) — but §2/§4/§5 reproduce all correctness-critical code |
+| Contract + specs | `[internal]` unpublished worktree of the private `eosio.contracts` — the public copy ships in the devtools image at `/opt/templates/tipjar` (`00` §3) |
+| Dapp | `[internal]` unpublished — §2/§4/§5 reproduce all correctness-critical code |
 
 ---
 
@@ -158,7 +158,7 @@ Plus `ricardian/tipjar.contracts.md.in` (a clause for `withdraw`) and the standa
 ## 3. Build + test (the exact session)
 
 > **Public path (no private checkout).** The commands in this section are the *internal*
-> reference machine's flow and use the private `eosio.contracts` repo. If you're working from
+> flow and use the private `eosio.contracts` repo. If you're working from
 > the public toolchain, **skip to the equivalent below** — it produces the same artifacts:
 >
 > ```bash
@@ -180,15 +180,15 @@ Plus `ricardian/tipjar.contracts.md.in` (a clause for `withdraw`) and the standa
 
 ```bash
 # own worktree (03 §2)  [internal]
-cd /home/adam/spring/eosio.contracts
-git worktree add /home/adam/spring/eosio.contracts-tipjar -b example/tipjar feature/ultra-dex-amm
-cd /home/adam/spring/eosio.contracts-tipjar
+cd eosio.contracts
+git worktree add ../eosio.contracts-tipjar -b example/tipjar feature/ultra-dex-amm
+cd ../eosio.contracts-tipjar
 #   … add contracts/tipjar/*, REGISTER in build.sh contract_list + contracts/CMakeLists.txt …
 ./build.sh -c ../eosio.cdt/build -C tipjar     # → build/contracts/tipjar/tipjar.{wasm,abi}
 
 # spec suite (pipe to a file — 04 §2)
-ultratest2 --contracts-dir-path=/home/adam/spring/eosio.contracts-tipjar/build/contracts \
-  -t /home/adam/spring/eosio.contracts-tipjar/ultratests/tipjar/tipjar.spec.ts \
+ultratest2 --contracts-dir-path="$PWD/build/contracts" \
+  -t "$PWD/ultratests/tipjar/tipjar.spec.ts" \
   > /tmp/tipjar-spec.log 2>&1
 ```
 
@@ -206,7 +206,7 @@ await ultraAPI.system.addEosioCodePermission('tipjar', 'active', 'tipjar');
 
 ## 4. The dapp
 
-`/home/adam/ultra.repos/ultra-tipjar-dapp` follows the `05` §2 structure exactly
+The dapp follows the `05` §2 structure exactly
 (`ultraWallet.ts` / `connection.ts` / `config.ts` / `tipjarClient.ts` / `tipjarMath.ts` +
 `Leaderboard.vue` + `TipForm.vue`). `ultraWallet.ts` retains the active provider and caches one
 Extension SDK plus one Web SDK per environment. `connection.ts` auto-selects Extension when
@@ -239,12 +239,12 @@ transport against a simulated Mainnet Web Wallet window; it asserts the account 
 
 ```bash
 # terminal A — seeded keep-alive chain (RPC :8888); EXIT code=0 in the log = seeded, chain STAYS UP
-cd /home/adam/spring/eosio.contracts-tipjar/ultratests/tipjar
-setsid ultratest2 --contracts-dir-path=/home/adam/spring/eosio.contracts-tipjar/build/contracts \
+cd eosio.contracts-tipjar/ultratests/tipjar
+setsid ultratest2 --contracts-dir-path="$(cd ../.. && pwd)/build/contracts" \
   -t $PWD/e2e_setup.ts --keep-alive > /tmp/tipjar-chain.log 2>&1 &
 
 # terminal B
-cd /home/adam/ultra.repos/ultra-tipjar-dapp
+cd <your-dapp-dir>
 npm install && npx playwright install chromium   # inside the devtools image: --with-deps chromium (05 §7)
 npx playwright test          # 4 cases — 3 extension-shaped/local-chain cases + 1 Web popup mock
 pkill -x nodeos              # cleanup
