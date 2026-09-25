@@ -65,7 +65,7 @@ or eosusa.
 
 ## 2. cleos recipes (Ultra-flavored)
 
-cleos ships with the Ultra toolchain (`/usr/local/bin/cleos` on this machine, v6.2.2-3.0.0).
+cleos ships with the Ultra toolchain (`/usr/local/bin/cleos` from the eosio package; also in the devtools image).
 Point it at any §1.1 endpoint with `-u`.
 
 ```bash
@@ -107,7 +107,7 @@ Table scope semantics: `get table <code> <scope> <table>` — scope is often an 
   `{"keys":["EOS…"]}` or `{"accounts":[{"actor":"...","permission":"active"}]}` — mind the
   per-endpoint capability gaps in §1.1. Requires `--enable-account-queries` on self-run
   nodes (incl. your local ultratest2 chain).
-- **Bulk scanners** (reference implementations in `/home/adam/ultra.repos/blockchain-scripts`):
+- **Bulk scanners** (reference implementations in the private `ultraio/blockchain-scripts`):
   `shell/account-query/account-query.sh` (all accounts via `eosio::userres`, EBA via
   `eosio.eba::ebasetup`), `shell/token-query/token-query.sh` (all tokens of a Uniq factory).
 
