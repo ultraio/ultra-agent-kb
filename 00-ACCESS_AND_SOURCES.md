@@ -1,6 +1,6 @@
 # 00 — Access & Sources (what's public, what's private, what to use)
 
-**Last Updated:** 2026-09-27 (image versions re-verified against `0.4.3-ubuntu24`; visibility checks performed unauthenticated 2026-07-24)
+**Last Updated:** 2026-09-27 (image versions re-verified against `0.4.3-ubuntu24` and `0.4.3-ubuntu26`; visibility checks performed unauthenticated 2026-07-24)
 **Read this to:** know which referenced repos/tools you can actually reach. This KB is
 written to be usable in two modes: **internal** (Ultra dev machine with the private
 checkouts) and **public** (npm + quay.io + developers.ultra.io only). Every doc marks
@@ -13,7 +13,7 @@ internal-only references with `[internal]`.
 | Resource | Where | Notes |
 | --- | --- | --- |
 | Official developer docs | `https://developers.ultra.io` (source: `github.com/ultraio/docs-blockchain`, public) | tutorials, chain/contract reference, endpoints |
-| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:0.4.3-ubuntu24` (public; **pin this tag**; `latest` = `0.4.3-ubuntu24` since 2026-09-27, see §3) | **the public way to get nodeos + cleos + keosd**; also ships CDT (`cdt-cpp`), **built system contracts at `/opt/eosio.contracts/build/contracts`**, **`@ultraos/ultratest2` preinstalled**, `/opt/templates/tipjar`, and `ultra-smoke`. **0.4.3: nodeos v6.2.2-3.0.3 (Savanna), CDT 4.1.1, eosio.contracts 5.2.1, Node 22.11, ultratest2 1.0.6** — see §3. (Pre-Savanna build preserved at tag `618e324f…`.) Binaries are NOT downloadable individually. |
+| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:0.4.3-ubuntu24` (public; **pin this tag**; `latest` = `0.4.3-ubuntu24` since 2026-09-27; an Ubuntu 26.04 twin `0.4.3-ubuntu26` ships the same toolchain, see §3) | **the public way to get nodeos + cleos + keosd**; also ships CDT (`cdt-cpp`), **built system contracts at `/opt/eosio.contracts/build/contracts`**, **`@ultraos/ultratest2` preinstalled**, `/opt/templates/tipjar`, and `ultra-smoke`. **0.4.3: nodeos v6.2.2-3.0.3 (Savanna), CDT 4.1.1, eosio.contracts 5.2.1, Node 22.11, ultratest2 1.0.6** — see §3. (Pre-Savanna build preserved at tag `618e324f…`.) Binaries are NOT downloadable individually. |
 | Other public images (quay.io/ultra.io) | `eosio-docker-starter`, `eosio-cdt-docker-starter`, `3rdparty-dfuse`, `firehose-antelope` | chain/CDT starters, dfuse/firehose |
 | `@ultraos/ultratest2` | npm (public) | the current TS test framework (`04`) — code installs publicly |
 | `@ultraio/ultratest` (v1) | devtools image only (`/opt/ultratest`, package 1.1.0) — **not on npm** | the legacy v1 framework; use ultratest2. Not the same thing as npm's `@ultraos/ultratest` (an unrelated 0.0.x package) or the `@ultraos/ultratest` alias a spec-dir `package.json` maps to ultratest2's `src` (§3) |
@@ -100,7 +100,7 @@ docker exec ultra bash -lc ultra-smoke
 
 Ships (verified in `0.4.3-ubuntu24` = Ubuntu 24.04.5)
 **nodeos/cleos v6.2.2-3.0.3 (Savanna; same 6.2.2 line as mainnet)**, **CDT 4.1.1** (`cdt-cpp`,
-build `4.1.1-3.0.3`), **eosio.contracts 5.2.1**, **Node v22.11.0 / npm 10.9.0**,
+release `4.1.1-3.0.3`; `dpkg` shows the package as `cdt 4.1.1-1`), **eosio.contracts 5.2.1**, **Node v22.11.0 / npm 10.9.0**,
 **`@ultraos/ultratest2@1.0.6` preinstalled globally** (so `ultratest2 -t <spec>` just works;
 the legacy v1 `@ultraio/ultratest` also sits at `/opt/ultratest` — its `package.json` says `1.1.0`, `/opt/versions.json` records its release tag `1.39.0`), the built **`eosio` system contracts** at
 `/opt/eosio.contracts/build/contracts` (`eosio.system`, `eosio.token`, `eosio.nft.ft`,
@@ -112,8 +112,10 @@ ultratest2 specs (mutations caught) from this KB and `0.4.3-ubuntu24` alone (lik
 (`ultra.docker` `external.yml`), so it refreshes reproducibly.
 
 > **Tag scheme.** Releases are published as immutable, distro-qualified tags:
-> **`<version>-ubuntu24`** plus **`<commit-sha>-ubuntu24`** — Ubuntu 24.04 (the Ubuntu 22 twin
-> `0.4.1-ubuntu22` was the last 22.04 image; no new ones are built). **Pin a versioned tag**
+> **`<version>-ubuntu24`** plus **`<commit-sha>-ubuntu24`** — Ubuntu 24.04, the primary image — and, from `0.4.3`, the
+> Ubuntu 26.04 twin **`<version>-ubuntu26`** (`0.4.3-ubuntu26` = Ubuntu 26.04.1, same nodeos/CDT/contracts/ultratest2/Node
+> versions built from the `-ubuntu26` packages; clean-room validated 2026-09-27 — use it in place of the `-ubuntu24` tag in every
+> command here). The Ubuntu 22 twin `0.4.1-ubuntu22` was the last 22.04 image; no new ones are built. **Pin a versioned tag**
 > (`0.4.3-ubuntu24`). **`latest` moves only by an explicit promotion** — since 2026-09-27 it points at
 > `0.4.3-ubuntu24` (`0.4.2-ubuntu24`, nodeos v6.2.2-3.0.2, and `0.4.1-ubuntu24`, nodeos v6.2.2-3.0.1, stay pullable); the previous July-2026 build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4) stays pullable as
 > `912c1f58df838cfa29decac18f30ee8b8aee9955`. Whatever you pulled, `cat /opt/versions.json` gives the eosio/CDT/contracts release inputs (its
