@@ -64,9 +64,10 @@ ultratest2 --contracts-dir-path=.../build/contracts -t .../ultratests/ultra.dex
 ultratest2 --contracts-dir-path=.../build/contracts -t $PWD/e2e_setup.ts --keep-alive
 ```
 
-- `--contracts-dir-path` must point at the `build/contracts` holding your wasm **and** the
-  system contracts. The default (`~/ultra/eosio.contracts/build/contracts`) is almost never
-  right — always pass it.
+- `--contracts-dir-path` must point at the `build/contracts` holding the **system** contracts
+  (in the dev image: `/opt/eosio.contracts/build/contracts`). Your own wasm may sit there too, or
+  anywhere your spec's `publishContract` path points (an absolute path works — `ultra-smoke` does
+  this). The default (`~/ultra/eosio.contracts/build/contracts`) is almost never right — always pass it.
 - **NEVER run `ultratest2 --help` — it hangs.** Other flags: `-n` (bare chain, no tests),
   `-s` (bare chain WITH system bootstrap), `--snapshot`, `--exclude`, `--logging <level>`,
   `--create-test <path>` (scaffold).
@@ -84,7 +85,7 @@ ultratest2 --contracts-dir-path=.../build/contracts -t $PWD/e2e_setup.ts --keep-
   `node_modules/` + `package-lock.json` will appear inside your worktree (gitignore them —
   expected, don't commit them). A manual `npm install` first is harmless but never required.
   - **Public / global-install path (no source checkout):** ultratest2 is **already installed
-    globally in the dev image** (1.0.6 in `0.4.2-*`) — no `npm i -g` needed there; run it only
+    globally in the dev image** (1.0.6 in `0.4.3-*`) — no `npm i -g` needed there; run it only
     if you're installing on a host. Spec-dir `package.json`: the `00` §3 file (its
     `ultratestPlugins` block alone is enough — verified) — validated end-to-end against the
     public image with zero workarounds.
