@@ -1,6 +1,6 @@
 # 00 — Access & Sources (what's public, what's private, what to use)
 
-**Last Updated:** 2026-09-27 (image versions re-verified against `0.4.3-ubuntu24` and `0.4.3-ubuntu26`; visibility checks performed unauthenticated 2026-07-24)
+**Last Updated:** 2026-10-07 (image versions re-verified against `0.4.4-ubuntu24` and `0.4.4-ubuntu26`; visibility checks performed unauthenticated 2026-07-24)
 **Read this to:** know which referenced repos/tools you can actually reach. This KB is
 written to be usable in two modes: **internal** (Ultra dev machine with the private
 checkouts) and **public** (npm + quay.io + developers.ultra.io only). Every doc marks
@@ -13,7 +13,7 @@ internal-only references with `[internal]`.
 | Resource | Where | Notes |
 | --- | --- | --- |
 | Official developer docs | `https://developers.ultra.io` (source: `github.com/ultraio/docs-blockchain`, public) | tutorials, chain/contract reference, endpoints |
-| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:0.4.3-ubuntu24` (public; **pin this tag**; `latest` = `0.4.3-ubuntu24` since 2026-09-27; an Ubuntu 26.04 twin `0.4.3-ubuntu26` ships the same toolchain, see §3) | **the public way to get nodeos + cleos + keosd**; also ships CDT (`cdt-cpp`), **built system contracts at `/opt/eosio.contracts/build/contracts`**, **`@ultraos/ultratest2` preinstalled**, `/opt/templates/tipjar`, and `ultra-smoke`. **0.4.3: nodeos v6.2.2-3.0.3 (Savanna), CDT 4.1.1, eosio.contracts 5.2.1, Node 22.11, ultratest2 1.0.6** — see §3. (Pre-Savanna build preserved at tag `618e324f…`.) Binaries are NOT downloadable individually. |
+| **Dev toolchain image** | `quay.io/ultra.io/3rdparty-devtools:0.4.4-ubuntu24` (public; **pin this tag**; `latest` = `0.4.4-ubuntu24` since 2026-10-07; an Ubuntu 26.04 twin `0.4.4-ubuntu26` ships the same toolchain, see §3) | **the public way to get nodeos + cleos + keosd**; also ships CDT (`cdt-cpp`), **built system contracts at `/opt/eosio.contracts/build/contracts`**, **`@ultraos/ultratest2` preinstalled**, `/opt/templates/tipjar`, and `ultra-smoke`. **0.4.4: nodeos v6.2.2-3.0.4 (Savanna), CDT 4.1.1, eosio.contracts 5.2.1, Node 22.11, ultratest2 1.0.6** — see §3. (Pre-Savanna build preserved at tag `618e324f…`.) Binaries are NOT downloadable individually. |
 | Other public images (quay.io/ultra.io) | `eosio-docker-starter`, `eosio-cdt-docker-starter`, `3rdparty-dfuse`, `firehose-antelope` | chain/CDT starters, dfuse/firehose |
 | `@ultraos/ultratest2` | npm (public) | the current TS test framework (`04`) — code installs publicly |
 | `@ultraio/ultratest` (v1) | devtools image only (`/opt/ultratest`, package 1.1.0) — **not on npm** | the legacy v1 framework; use ultratest2. Not the same thing as npm's `@ultraos/ultratest` (an unrelated 0.0.x package) or the `@ultraos/ultratest` alias a spec-dir `package.json` maps to ultratest2's `src` (§3) |
@@ -68,17 +68,17 @@ some repos are public but none are developer-toolchain images.)
 **Internal (Ultra dev machine):** everything in `02` §1 — native CDT/nodeos/ultratest2,
 private checkouts, the DeFi exemplars. Fastest, and what the worked example used.
 
-**Public (no private access)** — the official devtools image, **0.4.3 (2026-09)**: the
+**Public (no private access)** — the official devtools image, **0.4.4 (2026-10)**: the
 Savanna toolchain with everything preinstalled:
 
 ```bash
-docker pull quay.io/ultra.io/3rdparty-devtools:0.4.3-ubuntu24
+docker pull quay.io/ultra.io/3rdparty-devtools:0.4.4-ubuntu24
 # one-shot self-test, no container left behind (compiles the bundled Tip Jar template +
 # runs its spec suite: six ✔ cases (a failing case prints ✗), then "== ultra-smoke: PASS =="):
-docker run --rm quay.io/ultra.io/3rdparty-devtools:0.4.3-ubuntu24 -c ultra-smoke
+docker run --rm quay.io/ultra.io/3rdparty-devtools:0.4.4-ubuntu24 -c ultra-smoke
 # long-lived dev container; 8888 = nodeos's default HTTP/RPC port (the one ultratest2 uses)
 docker run -dit --name ultra -p 8888:8888 -p 9876:9876 \
-  -v ~/ultra_workdir:/opt/ultra_workdir quay.io/ultra.io/3rdparty-devtools:0.4.3-ubuntu24
+  -v ~/ultra_workdir:/opt/ultra_workdir quay.io/ultra.io/3rdparty-devtools:0.4.4-ubuntu24
 # the same self-test inside the running container:
 docker exec ultra bash -lc ultra-smoke
 # compile: cdt-cpp inside the image (or the VS Code extension)
@@ -98,33 +98,33 @@ docker exec ultra bash -lc ultra-smoke
 > `~/ultra_workdir` (e.g. `build/`) are owned by root on the host. Hand them back when done:
 > `docker exec ultra chown -R "$(id -u):$(id -g)" /opt/ultra_workdir` (run on the host, so `id` is yours).
 
-Ships (verified in `0.4.3-ubuntu24` = Ubuntu 24.04.5)
-**nodeos/cleos v6.2.2-3.0.3 (Savanna; same 6.2.2 line as mainnet)**, **CDT 4.1.1** (`cdt-cpp`,
+Ships (verified in `0.4.4-ubuntu24` = Ubuntu 24.04.5)
+**nodeos/cleos v6.2.2-3.0.4 (Savanna; same 6.2.2 line as mainnet)**, **CDT 4.1.1** (`cdt-cpp`,
 release `4.1.1-3.0.3`; `dpkg` shows the package as `cdt 4.1.1-1`), **eosio.contracts 5.2.1**, **Node v22.11.0 / npm 10.9.0**,
 **`@ultraos/ultratest2@1.0.6` preinstalled globally** (so `ultratest2 -t <spec>` just works;
 the legacy v1 `@ultraio/ultratest` also sits at `/opt/ultratest` — its `package.json` says `1.1.0`, `/opt/versions.json` records its release tag `1.39.0`), the built **`eosio` system contracts** at
 `/opt/eosio.contracts/build/contracts` (`eosio.system`, `eosio.token`, `eosio.nft.ft`,
 `eosio.msig`, `eosio.oracle`, `eosio.group`, plus `eosio.eba`, `eosio.kyc`, `eosio.wrap` and the `ultra.*` contracts), the Tip Jar
 worked example at `/opt/templates/tipjar`, and `/usr/local/bin/ultra-smoke` (self-test). Build
-inputs are recorded in `/opt/versions.json`. `0.4.3` validated 2026-09-27 — `ultra-smoke` green
-(Tip Jar 6/6) before push and on the pushed digest, and a clean-room agent built a new contract +
-ultratest2 specs (mutations caught) from this KB and `0.4.3-ubuntu24` alone (likewise `0.4.2` on 2026-09-26; `0.4.1` on 2026-09-25 also with a Vue dapp). Built + published by CI
+inputs are recorded in `/opt/versions.json`. `0.4.4` validated 2026-10-07 — `ultra-smoke` green
+(Tip Jar 6/6) before push and on the pushed digest (both distros), and a clean-room agent built a new poll contract +
+ultratest2 specs (4/4; two deliberate bugs caught by the specs) from this KB and `0.4.4-ubuntu24` alone (previously `0.4.3` on 2026-09-27, likewise `0.4.2` on 2026-09-26; `0.4.1` on 2026-09-25 also with a Vue dapp). Built + published by CI
 (`ultra.docker` `external.yml`), so it refreshes reproducibly.
 
 > **Tag scheme.** Releases are published as immutable, distro-qualified tags:
 > **`<version>-ubuntu24`** plus **`<commit-sha>-ubuntu24`** — Ubuntu 24.04, the primary image — and, from `0.4.3`, the
-> Ubuntu 26.04 twin **`<version>-ubuntu26`** (`0.4.3-ubuntu26` = Ubuntu 26.04.1, same nodeos/CDT/contracts/ultratest2/Node
-> versions built from the `-ubuntu26` packages; clean-room validated 2026-09-27 — use it in place of the `-ubuntu24` tag in every
+> Ubuntu 26.04 twin **`<version>-ubuntu26`** (`0.4.4-ubuntu26` = Ubuntu 26.04.1, same nodeos/CDT/contracts/ultratest2/Node
+> versions built from the `-ubuntu26` packages; `ultra-smoke` green and versions checked 2026-10-07 — the full clean-room contract run was done on `0.4.3-ubuntu26` (2026-09-27) and on `0.4.4-ubuntu24` — use it in place of the `-ubuntu24` tag in every
 > command here). The Ubuntu 22 twin `0.4.1-ubuntu22` was the last 22.04 image; no new ones are built. **Pin a versioned tag**
-> (`0.4.3-ubuntu24`). **`latest` moves only by an explicit promotion** — since 2026-09-27 it points at
-> `0.4.3-ubuntu24` (`0.4.2-ubuntu24`, nodeos v6.2.2-3.0.2, and `0.4.1-ubuntu24`, nodeos v6.2.2-3.0.1, stay pullable); the previous July-2026 build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4) stays pullable as
+> (`0.4.4-ubuntu24`). **`latest` moves only by an explicit promotion** — since 2026-10-07 it points at
+> `0.4.4-ubuntu24` (`0.4.3-ubuntu24`, nodeos v6.2.2-3.0.3, `0.4.2-ubuntu24`, nodeos v6.2.2-3.0.2, and `0.4.1-ubuntu24`, nodeos v6.2.2-3.0.1, stay pullable); the previous July-2026 build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4) stays pullable as
 > `912c1f58df838cfa29decac18f30ee8b8aee9955`. Whatever you pulled, `cat /opt/versions.json` gives the eosio/CDT/contracts release inputs (its
 > `ultratest` key is the legacy v1 framework's release tag, not ultratest2); `npm ls -g @ultraos/ultratest2` and `node --version` give the rest.
 >
 > **Upgrade note.** Before 2026-07-24 this image shipped **nodeos v5.0.2 (pre-Savanna)**,
 > CDT 4.0.1, Node 19 and only ultratest **v1**. If you need that older image it remains at the
 > digest tag **`618e324fc60de62b6e65d757340c45daadbbf868`** (`0.2.0` is an even older, separate build). The `:0.3.1` tag pins
-> the July-2026 Savanna build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4); `0.4.3-*` supersedes it.
+> the July-2026 Savanna build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4); `0.4.4-*` supersedes it.
 
 **Validated 2026-07-23** (full Tip Jar flow, docker-only, host toolchain untouched), then
 **re-validated the same day, from published npm, with ZERO workarounds** after the tooling
@@ -181,7 +181,7 @@ silenced in ultratest2 ≥ 1.0.4.) **Stale advice, now obsolete:** older notes t
 refreshed image is **Node 22 / npm 10 with ultratest2 preinstalled**, so neither applies.
 
 **Still verify on testnet.** The image now runs a **Savanna chain on the same 6.2.2 line as
-mainnet** (nodeos v6.2.2-3.0.3) with current system contracts, so a green local run is a far stronger
+mainnet** (nodeos v6.2.2-3.0.4) with current system contracts, so a green local run is a far stronger
 signal than before — but it is still a local single-node chain: re-verify on testnet before
 mainnet (`08`).
 
