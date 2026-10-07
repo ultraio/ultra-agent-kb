@@ -114,7 +114,7 @@ ultratest2 specs (4/4; two deliberate bugs caught by the specs) from this KB and
 > **Tag scheme.** Releases are published as immutable, distro-qualified tags:
 > **`<version>-ubuntu24`** plus **`<commit-sha>-ubuntu24`** — Ubuntu 24.04, the primary image — and, from `0.4.3`, the
 > Ubuntu 26.04 twin **`<version>-ubuntu26`** (`0.4.4-ubuntu26` = Ubuntu 26.04.1, same nodeos/CDT/contracts/ultratest2/Node
-> versions built from the `-ubuntu26` packages; `ultra-smoke` green and versions checked 2026-10-07 — the full clean-room contract run was done on `0.4.3-ubuntu26` (2026-09-27) and on `0.4.4-ubuntu24` — use it in place of the `-ubuntu24` tag in every
+> versions built from the `-ubuntu26` packages; `ultra-smoke` green and versions checked 2026-10-07 — the full clean-room contract run was done on `0.4.4-ubuntu26` (2026-10-07: a new notes contract + ultratest2 specs incl. auth and bad-input cases, two deliberate bugs caught, no workarounds; earlier `0.4.3-ubuntu26` on 2026-09-27) and on `0.4.4-ubuntu24` — use it in place of the `-ubuntu24` tag in every
 > command here). The Ubuntu 22 twin `0.4.1-ubuntu22` was the last 22.04 image; no new ones are built. **Pin a versioned tag**
 > (`0.4.4-ubuntu24`). **`latest` moves only by an explicit promotion** — since 2026-10-07 it points at
 > `0.4.4-ubuntu24` (`0.4.3-ubuntu24`, nodeos v6.2.2-3.0.3, `0.4.2-ubuntu24`, nodeos v6.2.2-3.0.2, and `0.4.1-ubuntu24`, nodeos v6.2.2-3.0.1, stay pullable); the previous July-2026 build (nodeos v6.2.2-3.0.0, ultratest2 1.0.4) stays pullable as
