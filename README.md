@@ -123,7 +123,7 @@ wallet layer was updated against the dual-provider patterns in Ultra Bridge and 
 Clean-room validation did not use a real Web Wallet; `06` states the additional release gate.
 
 **Clean-room validated on the public path.** A fresh agent, given only this KB +
-`quay.io/ultra.io/3rdparty-devtools:0.4.3-ubuntu24` (re-validated 2026-09-27 with a new poll contract + specs;
+`quay.io/ultra.io/3rdparty-devtools:0.4.4-ubuntu24` (re-validated 2026-10-07 with a new poll contract + specs; `0.4.3` on 2026-09-27 with a poll contract + specs;
 `0.4.2` on 2026-09-26 with a guestbook contract + specs; `0.4.1` on 2026-09-25 with an escrow contract + specs + Vue dapp; earlier runs used the July-2026 build) + public npm — every host tool and every other
 path on the machine forbidden — designs and ships a complete contract + dapp end to end:
 `cdt-cpp` build, ultratest2 spec suite, dapp unit tests, `vue-tsc + vite build`, and

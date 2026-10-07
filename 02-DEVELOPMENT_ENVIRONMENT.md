@@ -15,8 +15,8 @@ Repository paths below are relative to wherever you keep your checkouts (e.g. `e
 | Tool | Version | Location | Purpose |
 | --- | --- | --- | --- |
 | **CDT** (`cdt-cpp`) | 4.1.1 | `/usr/local/bin/cdt-cpp` (installed package; or an `eosio.cdt/build` source tree) | compile C++ → wasm/abi |
-| **nodeos / cleos** | v6.2.2-3.0.x (Ultra Spring fork; 3.0.3 in the `0.4.3-*` image) | `/usr/local/bin/{nodeos,cleos}` (installed package, or built from `ultraio/eosio`) | local chain + CLI |
-| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` = **1.0.6**, also preinstalled in the `0.4.3-*` devtools image; internal setups may `npm link` an `ultraio/ultratest2` checkout instead) | global npm bin (`npm root -g`) | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
+| **nodeos / cleos** | v6.2.2-3.0.x (Ultra Spring fork; 3.0.4 in the `0.4.4-*` image) | `/usr/local/bin/{nodeos,cleos}` (installed package, or built from `ultraio/eosio`) | local chain + CLI |
+| **ultratest2** | `@ultraos/ultratest2` (public npm `latest` = **1.0.6**, also preinstalled in the `0.4.4-*` devtools image; internal setups may `npm link` an `ultraio/ultratest2` checkout instead) | global npm bin (`npm root -g`) | contract test framework (TS, runs via `tsx`, no build step). Public bootstrap: `npm i -g @ultraos/ultratest2` — see `00` §3 |
 | **Node.js** | v22 | any install (nvm works) | ultratest2, dapps |
 | Spring source | `eosio/` (Ultra's Spring fork, `ultraio/eosio`) | | protocol reference |
 | eosio.contracts | `eosio.contracts/` (branch `master`) | | system contracts + `build.sh` |
@@ -32,7 +32,7 @@ unrelated WIP; **don't build your work there** — make your own worktree (`03` 
 
 ```bash
 cdt-cpp --version                 # cdt-cpp version 4.1.1
-nodeos --version                  # v6.2.2-3.0.x; v6.2.2-3.0.3 in the 0.4.3-* image
+nodeos --version                  # v6.2.2-3.0.x; v6.2.2-3.0.4 in the 0.4.4-* image
 ultratest2 --version              # banner (NEVER run `ultratest2 --help` — it hangs)
 ls eosio.contracts-defi/build/contracts/ultra.dex/   # prebuilt exemplar wasm/abi
 ```
